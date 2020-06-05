@@ -705,6 +705,7 @@ static grpc_error* init_window_update_frame_parser(grpc_chttp2_transport* t) {
       &t->simple.window_update, t->incoming_frame_size,
       t->incoming_frame_flags);
   if (err != GRPC_ERROR_NONE) return err;
+  t->ping_state.last_ping_sent_time = GRPC_MILLIS_INF_PAST;
   if (t->incoming_stream_id != 0) {
     grpc_chttp2_stream* s = t->incoming_stream =
         grpc_chttp2_parsing_lookup_stream(t, t->incoming_stream_id);
