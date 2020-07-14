@@ -115,11 +115,8 @@ class ConnectivityStateTracker {
 
   // Sets connectivity state.
   // Not thread safe; access must be serialized with an external lock.
-  void SetState(grpc_connectivity_state state, const char* reason,
-                const absl::Status& status);
-
-  // Deprecated. Prefer the version above.
-  void SetState(grpc_connectivity_state state, const char* reason);
+  void SetState(grpc_connectivity_state state, const absl::Status& status,
+                const char* reason);
 
   // Gets the current state.
   // Thread safe; no need to use an external lock.
@@ -128,6 +125,7 @@ class ConnectivityStateTracker {
  private:
   const char* name_;
   Atomic<grpc_connectivity_state> state_;
+  absl::Status status_;
   // TODO(roth): Once we can use C++-14 heterogeneous lookups, this can
   // be a set instead of a map.
   std::map<ConnectivityStateWatcherInterface*,

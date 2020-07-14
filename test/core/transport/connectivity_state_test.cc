@@ -42,16 +42,19 @@ TEST(ConnectivityStateName, Basic) {
 
 class Watcher : public ConnectivityStateWatcherInterface {
  public:
-  Watcher(int* count, grpc_connectivity_state* output,
+  Watcher(int* count, grpc_connectivity_state* output, absl::Status* status,
           bool* destroyed = nullptr)
-      : count_(count), output_(output), destroyed_(destroyed) {}
+      : count_(count),
+        output_(output),
+        status_(status),
+        destroyed_(destroyed) {}
 
   ~Watcher() {
     if (destroyed_ != nullptr) *destroyed_ = true;
   }
 
   void Notify(grpc_connectivity_state new_state,
-              const absl::Status& /* status */) override {
+              const absl::Status& status) override {
     ++*count_;
     *output_ = new_state;
   }
@@ -59,6 +62,7 @@ class Watcher : public ConnectivityStateWatcherInterface {
  private:
   int* count_;
   grpc_connectivity_state* output_;
+  abs::Status* status_;
   bool* destroyed_;
 };
 

@@ -318,15 +318,16 @@ class GrpcLb : public LoadBalancingPolicy {
 
    private:
     void OnConnectivityStateChange(grpc_connectivity_state new_state,
-                                   const absl::Status& /* status */) override {
+                                   const absl::Status& status) override {
       if (parent_->fallback_at_startup_checks_pending_ &&
           new_state == GRPC_CHANNEL_TRANSIENT_FAILURE) {
         // In TRANSIENT_FAILURE.  Cancel the fallback timer and go into
         // fallback mode immediately.
         gpr_log(GPR_INFO,
-                "[grpclb %p] balancer channel in state TRANSIENT_FAILURE; "
+                "[grpclb %p] balancer channel in state:TRANSIENT_FAILURE "
+                "status_message:(%s) "
                 "entering fallback mode",
-                parent_.get());
+                parent_.get(), status.ToString().c_str());
         parent_->fallback_at_startup_checks_pending_ = false;
         grpc_timer_cancel(&parent_->lb_fallback_timer_);
         parent_->fallback_mode_ = true;
