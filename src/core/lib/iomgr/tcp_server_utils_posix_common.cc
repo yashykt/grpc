@@ -31,10 +31,9 @@
 
 #include <string>
 
-#include "absl/strings/str_cat.h"
-
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
 #include <grpc/support/sync.h>
 
 #include "src/core/lib/iomgr/error.h"
@@ -86,13 +85,15 @@ static grpc_error* add_socket_to_server(grpc_tcp_server* s, int fd,
                                         grpc_tcp_listener** listener) {
   grpc_tcp_listener* sp = nullptr;
   int port = -1;
+  std::string addr_str;
+  char* name;
 
   grpc_error* err =
       grpc_tcp_server_prepare_socket(s, fd, addr, s->so_reuseport, &port);
   if (err == GRPC_ERROR_NONE) {
     GPR_ASSERT(port > 0);
-    std::string addr_str = grpc_sockaddr_to_string(addr, true);
-    std::string name = absl::StrCat("tcp-server-listener:", addr_str);
+    addr_str = grpc_sockaddr_to_string(addr, true);
+    gpr_asprintf(&name, "tcp-server-listener:%s", addr_str.c_str());
     gpr_mu_lock(&s->mu);
     s->nports++;
     GPR_ASSERT(!s->on_accept_cb && "must add ports before starting server");
@@ -106,7 +107,7 @@ static grpc_error* add_socket_to_server(grpc_tcp_server* s, int fd,
     s->tail = sp;
     sp->server = s;
     sp->fd = fd;
-    sp->emfd = grpc_fd_create(fd, name.c_str(), true);
+    sp->emfd = grpc_fd_create(fd, name, true);
     memcpy(&sp->addr, addr, sizeof(grpc_resolved_address));
     sp->port = port;
     sp->port_index = port_index;
@@ -115,6 +116,7 @@ static grpc_error* add_socket_to_server(grpc_tcp_server* s, int fd,
     sp->sibling = nullptr;
     GPR_ASSERT(sp->emfd);
     gpr_mu_unlock(&s->mu);
+    gpr_free(name);
   }
 
   *listener = sp;

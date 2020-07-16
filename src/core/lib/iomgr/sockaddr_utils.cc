@@ -24,13 +24,11 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include <string>
-
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
 
 #include "src/core/lib/gpr/string.h"
 #include "src/core/lib/gprpp/host_port.h"
@@ -214,8 +212,8 @@ void grpc_string_to_sockaddr(grpc_resolved_address* out, char* addr, int port) {
   grpc_sockaddr_set_port(out, port);
 }
 
-std::string grpc_sockaddr_to_uri(const grpc_resolved_address* resolved_addr) {
-  if (resolved_addr->len == 0) return "";
+char* grpc_sockaddr_to_uri(const grpc_resolved_address* resolved_addr) {
+  if (resolved_addr->len == 0) return nullptr;
   grpc_resolved_address addr_normalized;
   if (grpc_sockaddr_is_v4mapped(resolved_addr, &addr_normalized)) {
     resolved_addr = &addr_normalized;
@@ -226,9 +224,9 @@ std::string grpc_sockaddr_to_uri(const grpc_resolved_address* resolved_addr) {
   }
   std::string path =
       grpc_sockaddr_to_string(resolved_addr, false /* normalize */);
-  std::string uri_str;
+  char* uri_str = nullptr;
   if (scheme != nullptr) {
-    uri_str = absl::StrCat(scheme, ":", path);
+    gpr_asprintf(&uri_str, "%s:%s", scheme, path.c_str());
   }
   return uri_str;
 }

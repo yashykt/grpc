@@ -15,6 +15,5 @@
 -Ithird_party/googletest/googletest/include
 -Ithird_party/googletest/include
 -Ithird_party/protobuf/src
--Ithird_party/re2
 -Ithird_party/upb
 -Ithird_party/zlib

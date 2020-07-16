@@ -20,8 +20,6 @@
 #include "src/core/lib/iomgr/port.h"
 #if GRPC_ARES == 1 && defined(GRPC_WINDOWS_SOCKET_ARES_EV_DRIVER)
 
-#include "absl/strings/str_format.h"
-
 #include <ares.h>
 
 #include <grpc/support/alloc.h>
@@ -106,10 +104,10 @@ class GrpcPolledFdWindows {
         read_buf_(grpc_empty_slice()),
         write_buf_(grpc_empty_slice()),
         tcp_write_state_(WRITE_IDLE),
-        name_(absl::StrFormat("c-ares socket: %" PRIdPTR, as)),
         gotten_into_driver_list_(false),
         address_family_(address_family),
         socket_type_(socket_type) {
+    gpr_asprintf(&name_, "c-ares socket: %" PRIdPTR, as);
     // Closure Initialization
     GRPC_CLOSURE_INIT(&outer_read_closure_,
                       &GrpcPolledFdWindows::OnIocpReadable, this,
@@ -120,7 +118,7 @@ class GrpcPolledFdWindows {
     GRPC_CLOSURE_INIT(&on_tcp_connect_locked_,
                       &GrpcPolledFdWindows::OnTcpConnect, this,
                       grpc_schedule_on_exec_ctx);
-    winsocket_ = grpc_winsocket_create(as, name_.c_str());
+    winsocket_ = grpc_winsocket_create(as, name_);
   }
 
   ~GrpcPolledFdWindows() {
@@ -129,6 +127,7 @@ class GrpcPolledFdWindows {
     GPR_ASSERT(read_closure_ == nullptr);
     GPR_ASSERT(write_closure_ == nullptr);
     grpc_winsocket_destroy(winsocket_);
+    gpr_free(name_);
   }
 
   void ScheduleAndNullReadClosure(grpc_error* error) {
@@ -261,7 +260,7 @@ class GrpcPolledFdWindows {
     return grpc_winsocket_wrapped_socket(winsocket_);
   }
 
-  const char* GetName() { return name_.c_str(); }
+  const char* GetName() { return name_; }
 
   ares_ssize_t RecvFrom(WSAErrorContext* wsa_error_ctx, void* data,
                         ares_socket_t data_len, int flags,
@@ -658,7 +657,6 @@ class GrpcPolledFdWindows {
   bool gotten_into_driver_list() const { return gotten_into_driver_list_; }
   void set_gotten_into_driver_list() { gotten_into_driver_list_ = true; }
 
- private:
   std::shared_ptr<WorkSerializer> work_serializer_;
   char recv_from_source_addr_[200];
   ares_socklen_t recv_from_source_addr_len_;
@@ -672,7 +670,7 @@ class GrpcPolledFdWindows {
   grpc_winsocket* winsocket_;
   // tcp_write_state_ is only used on TCP GrpcPolledFds
   WriteState tcp_write_state_;
-  std::string name_;
+  char* name_ = nullptr;
   bool gotten_into_driver_list_;
   int address_family_;
   int socket_type_;

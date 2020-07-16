@@ -21,8 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <string>
-
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/cpp/common/channel_filter.h"
 
@@ -56,8 +54,9 @@ class ServerLoadReportingCallData : public CallData {
 
  private:
   // From the peer_string_ in calld, extracts the client IP string (owned by
-  // caller), e.g., "01020a0b". Upon failure, returns empty string.
-  std::string GetCensusSafeClientIpString();
+  // caller), e.g., "01020a0b". Upon failure, set the output pointer to null and
+  // size to zero.
+  void GetCensusSafeClientIpString(char** client_ip_string, size_t* size);
 
   // Concatenates the client IP address and the load reporting token, then
   // stores the result into the call data.

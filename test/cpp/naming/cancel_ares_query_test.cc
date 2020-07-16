@@ -19,11 +19,6 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <string>
-
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
-
 #include <gflags/gflags.h>
 #include <gmock/gmock.h>
 
@@ -32,7 +27,7 @@
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/time.h>
-
+#include "include/grpc/support/string_util.h"
 #include "src/core/ext/filters/client_channel/resolver.h"
 #include "src/core/ext/filters/client_channel/resolver/dns/dns_resolver_selection.h"
 #include "src/core/ext/filters/client_channel/resolver_registry.h"
@@ -159,15 +154,18 @@ class AssertFailureResultHandler : public grpc_core::Resolver::ResultHandler {
 void TestCancelActiveDNSQuery(ArgsStruct* args) {
   int fake_dns_port = grpc_pick_unused_port_or_die();
   grpc::testing::FakeNonResponsiveDNSServer fake_dns_server(fake_dns_port);
-  std::string client_target = absl::StrFormat(
+  char* client_target;
+  GPR_ASSERT(gpr_asprintf(
+      &client_target,
       "dns://[::1]:%d/dont-care-since-wont-be-resolved.test.com:1234",
-      fake_dns_port);
+      fake_dns_port));
   // create resolver and resolve
   grpc_core::OrphanablePtr<grpc_core::Resolver> resolver =
       grpc_core::ResolverRegistry::CreateResolver(
-          client_target.c_str(), nullptr, args->pollset_set, args->lock,
+          client_target, nullptr, args->pollset_set, args->lock,
           std::unique_ptr<grpc_core::Resolver::ResultHandler>(
               new AssertFailureResultHandler(args)));
+  gpr_free(client_target);
   resolver->StartLocked();
   // Without resetting and causing resolver shutdown, the
   // PollPollsetUntilRequestDone call should never finish.
@@ -280,9 +278,11 @@ void TestCancelDuringActiveQuery(
   int fake_dns_port = grpc_pick_unused_port_or_die();
   grpc::testing::FakeNonResponsiveDNSServer fake_dns_server(fake_dns_port);
   // Create a call that will try to use the fake DNS server
-  std::string client_target = absl::StrFormat(
+  char* client_target = nullptr;
+  GPR_ASSERT(gpr_asprintf(
+      &client_target,
       "dns://[::1]:%d/dont-care-since-wont-be-resolved.test.com:1234",
-      fake_dns_port);
+      fake_dns_port));
   gpr_log(GPR_DEBUG, "TestCancelActiveDNSQuery. query timeout setting: %d",
           query_timeout_setting);
   grpc_channel_args* client_args = nullptr;
@@ -309,7 +309,8 @@ void TestCancelDuringActiveQuery(
     abort();
   }
   grpc_channel* client =
-      grpc_insecure_channel_create(client_target.c_str(), client_args, nullptr);
+      grpc_insecure_channel_create(client_target, client_args, nullptr);
+  gpr_free(client_target);
   grpc_completion_queue* cq = grpc_completion_queue_create_for_next(nullptr);
   cq_verifier* cqv = cq_verifier_create(cq);
   gpr_timespec deadline = grpc_timeout_milliseconds_to_deadline(100);

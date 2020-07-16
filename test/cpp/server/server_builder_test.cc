@@ -26,7 +26,6 @@
 
 #include "src/proto/grpc/testing/echo.grpc.pb.h"
 #include "test/core/util/port.h"
-#include "test/core/util/test_config.h"
 
 namespace grpc {
 namespace {
@@ -88,7 +87,6 @@ TEST_F(ServerBuilderTest, CreateServerRepeatedPortWithDisallowedReusePort) {
 }  // namespace grpc
 
 int main(int argc, char** argv) {
-  grpc::testing::TestEnvironment env(argc, argv);
   ::testing::InitGoogleTest(&argc, argv);
   int ret = RUN_ALL_TESTS();
   return ret;

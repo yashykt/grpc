@@ -20,14 +20,11 @@
 
 #include <string.h>
 
-#include <string>
-
-#include "absl/strings/str_format.h"
-
 #include <grpc/grpc_security.h>
 #include <grpc/slice.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
 
 #include "src/core/ext/filters/client_channel/lb_policy/grpclb/grpclb.h"
 #include "src/core/ext/filters/client_channel/parse_address.h"
@@ -124,7 +121,8 @@ void ServerLoadReportingCallData::StartTransportStreamOpBatch(
   grpc_call_next_op(elem, op->op());
 }
 
-std::string ServerLoadReportingCallData::GetCensusSafeClientIpString() {
+void ServerLoadReportingCallData::GetCensusSafeClientIpString(
+    char** client_ip_string, size_t* size) {
   // Find the client URI string.
   const char* client_uri_str =
       reinterpret_cast<const char*>(gpr_atm_acq_load(peer_string_));
@@ -132,7 +130,9 @@ std::string ServerLoadReportingCallData::GetCensusSafeClientIpString() {
     gpr_log(GPR_ERROR,
             "Unable to extract client URI string (peer string) from gRPC "
             "metadata.");
-    return "";
+    *client_ip_string = nullptr;
+    *size = 0;
+    return;
   }
   // Parse the client URI string into grpc_uri.
   grpc_uri* client_uri = grpc_uri_parse(client_uri_str, true);
@@ -140,7 +140,9 @@ std::string ServerLoadReportingCallData::GetCensusSafeClientIpString() {
     gpr_log(GPR_ERROR,
             "Unable to parse the client URI string (peer string) to a client "
             "URI.");
-    return "";
+    *client_ip_string = nullptr;
+    *size = 0;
+    return;
   }
   // Parse the client URI into grpc_resolved_address.
   grpc_resolved_address resolved_address;
@@ -149,23 +151,26 @@ std::string ServerLoadReportingCallData::GetCensusSafeClientIpString() {
   if (!success) {
     gpr_log(GPR_ERROR,
             "Unable to parse client URI into a grpc_resolved_address.");
-    return "";
+    *client_ip_string = nullptr;
+    *size = 0;
+    return;
   }
   // Convert the socket address in the grpc_resolved_address into a hex string
   // according to the address family.
   grpc_sockaddr* addr = reinterpret_cast<grpc_sockaddr*>(resolved_address.addr);
   if (addr->sa_family == GRPC_AF_INET) {
     grpc_sockaddr_in* addr4 = reinterpret_cast<grpc_sockaddr_in*>(addr);
-    return absl::StrFormat("%08x", grpc_ntohl(addr4->sin_addr.s_addr));
+    gpr_asprintf(client_ip_string, "%08x", grpc_ntohl(addr4->sin_addr.s_addr));
+    *size = 8;
   } else if (addr->sa_family == GRPC_AF_INET6) {
     grpc_sockaddr_in6* addr6 = reinterpret_cast<grpc_sockaddr_in6*>(addr);
-    std::string client_ip;
-    client_ip.reserve(32);
+    *client_ip_string = static_cast<char*>(gpr_malloc(32 + 1));
     uint32_t* addr6_next_long = reinterpret_cast<uint32_t*>(&addr6->sin6_addr);
     for (size_t i = 0; i < 4; ++i) {
-      absl::StrAppendFormat(&client_ip, "%08x", grpc_ntohl(*addr6_next_long++));
+      snprintf(*client_ip_string + 8 * i, 8 + 1, "%08x",
+               grpc_ntohl(*addr6_next_long++));
     }
-    return client_ip;
+    *size = 32;
   } else {
     GPR_UNREACHABLE_CODE();
   }
@@ -173,28 +178,31 @@ std::string ServerLoadReportingCallData::GetCensusSafeClientIpString() {
 
 void ServerLoadReportingCallData::StoreClientIpAndLrToken(const char* lr_token,
                                                           size_t lr_token_len) {
-  std::string client_ip = GetCensusSafeClientIpString();
+  char* client_ip;
+  size_t client_ip_len;
+  GetCensusSafeClientIpString(&client_ip, &client_ip_len);
   client_ip_and_lr_token_len_ =
-      kLengthPrefixSize + client_ip.size() + lr_token_len;
+      kLengthPrefixSize + client_ip_len + lr_token_len;
   client_ip_and_lr_token_ = static_cast<char*>(
       gpr_zalloc(client_ip_and_lr_token_len_ * sizeof(char)));
   char* cur_pos = client_ip_and_lr_token_;
   // Store the IP length prefix.
-  if (client_ip.size() == 0) {
+  if (client_ip_len == 0) {
     strncpy(cur_pos, kEmptyAddressLengthString, kLengthPrefixSize);
-  } else if (client_ip.size() == 8) {
+  } else if (client_ip_len == 8) {
     strncpy(cur_pos, kEncodedIpv4AddressLengthString, kLengthPrefixSize);
-  } else if (client_ip.size() == 32) {
+  } else if (client_ip_len == 32) {
     strncpy(cur_pos, kEncodedIpv6AddressLengthString, kLengthPrefixSize);
   } else {
     GPR_UNREACHABLE_CODE();
   }
   cur_pos += kLengthPrefixSize;
   // Store the IP.
-  if (!client_ip.empty()) {
-    strncpy(cur_pos, client_ip.c_str(), client_ip.size());
+  if (client_ip_len != 0) {
+    strncpy(cur_pos, client_ip, client_ip_len);
   }
-  cur_pos += client_ip.size();
+  gpr_free(client_ip);
+  cur_pos += client_ip_len;
   // Store the LR token.
   if (lr_token_len != 0) {
     strncpy(cur_pos, lr_token, lr_token_len);

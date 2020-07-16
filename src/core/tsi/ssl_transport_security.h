@@ -21,7 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <grpc/grpc_security_constants.h>
 #include "absl/strings/string_view.h"
 #include "src/core/tsi/transport_security_interface.h"
 
@@ -153,10 +152,6 @@ struct tsi_ssl_client_handshaker_options {
   /* skip server certificate verification. */
   bool skip_server_certificate_verification;
 
-  /* The min and max TLS versions that will be negotiated by the handshaker. */
-  tsi_tls_version min_tls_version;
-  tsi_tls_version max_tls_version;
-
   tsi_ssl_client_handshaker_options()
       : pem_key_cert_pair(nullptr),
         pem_root_certs(nullptr),
@@ -165,9 +160,7 @@ struct tsi_ssl_client_handshaker_options {
         alpn_protocols(nullptr),
         num_alpn_protocols(0),
         session_cache(nullptr),
-        skip_server_certificate_verification(false),
-        min_tls_version(tsi_tls_version::TSI_TLS1_2),
-        max_tls_version(tsi_tls_version::TSI_TLS1_3) {}
+        skip_server_certificate_verification(false) {}
 };
 
 /* Creates a client handshaker factory.
@@ -283,9 +276,6 @@ struct tsi_ssl_server_handshaker_options {
   const char* session_ticket_key;
   /* session_ticket_key_size is a size of session ticket encryption key. */
   size_t session_ticket_key_size;
-  /* The min and max TLS versions that will be negotiated by the handshaker. */
-  tsi_tls_version min_tls_version;
-  tsi_tls_version max_tls_version;
 
   tsi_ssl_server_handshaker_options()
       : pem_key_cert_pairs(nullptr),
@@ -296,9 +286,7 @@ struct tsi_ssl_server_handshaker_options {
         alpn_protocols(nullptr),
         num_alpn_protocols(0),
         session_ticket_key(nullptr),
-        session_ticket_key_size(0),
-        min_tls_version(tsi_tls_version::TSI_TLS1_2),
-        max_tls_version(tsi_tls_version::TSI_TLS1_3) {}
+        session_ticket_key_size(0) {}
 };
 
 /* Creates a server handshaker factory.

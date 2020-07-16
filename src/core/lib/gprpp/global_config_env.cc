@@ -30,10 +30,6 @@
 #include <ctype.h>
 #include <string.h>
 
-#include <string>
-
-#include "absl/strings/str_format.h"
-
 namespace grpc_core {
 
 namespace {
@@ -46,10 +42,12 @@ GlobalConfigEnvErrorFunctionType g_global_config_env_error_func =
     DefaultGlobalConfigEnvErrorFunction;
 
 void LogParsingError(const char* name, const char* value) {
-  std::string error_message = absl::StrFormat(
-      "Illegal value '%s' specified for environment variable '%s'", value,
-      name);
-  (*g_global_config_env_error_func)(error_message.c_str());
+  char* error_message;
+  gpr_asprintf(&error_message,
+               "Illegal value '%s' specified for environment variable '%s'",
+               value, name);
+  (*g_global_config_env_error_func)(error_message);
+  gpr_free(error_message);
 }
 
 }  // namespace

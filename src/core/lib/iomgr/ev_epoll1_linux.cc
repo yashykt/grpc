@@ -38,15 +38,14 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <string>
 #include <vector>
 
-#include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/strings/str_join.h"
 
 #include <grpc/support/alloc.h>
 #include <grpc/support/cpu.h>
+#include <grpc/support/string_util.h>
 
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/gpr/string.h"
@@ -352,14 +351,16 @@ static grpc_fd* fd_create(int fd, const char* name, bool track_err) {
 
   new_fd->freelist_next = nullptr;
 
-  std::string fd_name = absl::StrCat(name, " fd=", fd);
-  grpc_iomgr_register_object(&new_fd->iomgr_object, fd_name.c_str());
+  char* fd_name;
+  gpr_asprintf(&fd_name, "%s fd=%d", name, fd);
+  grpc_iomgr_register_object(&new_fd->iomgr_object, fd_name);
   fork_fd_list_add_grpc_fd(new_fd);
 #ifndef NDEBUG
   if (GRPC_TRACE_FLAG_ENABLED(grpc_trace_fd_refcount)) {
-    gpr_log(GPR_DEBUG, "FD %d %p create %s", fd, new_fd, fd_name.c_str());
+    gpr_log(GPR_DEBUG, "FD %d %p create %s", fd, new_fd, fd_name);
   }
 #endif
+  gpr_free(fd_name);
 
   struct epoll_event ev;
   ev.events = static_cast<uint32_t>(EPOLLIN | EPOLLOUT | EPOLLET);

@@ -22,8 +22,6 @@
 
 #ifndef GRPC_HAVE_UNIX_SOCKET
 
-#include <string>
-
 #include <grpc/support/log.h>
 
 void grpc_create_socketpair_if_unix(int sv[2]) {
@@ -44,9 +42,8 @@ int grpc_is_unix_socket(const grpc_resolved_address* addr) { return false; }
 
 void grpc_unlink_if_unix_domain_socket(const grpc_resolved_address* addr) {}
 
-std::string grpc_sockaddr_to_uri_unix_if_possible(
-    const grpc_resolved_address* addr) {
-  return "";
+char* grpc_sockaddr_to_uri_unix_if_possible(const grpc_resolved_address* addr) {
+  return NULL;
 }
 
 #endif

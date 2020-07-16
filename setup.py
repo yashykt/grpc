@@ -55,7 +55,6 @@ if 'linux' in sys.platform:
     CARES_INCLUDE += (os.path.join('third_party', 'cares', 'config_linux'),)
 if 'openbsd' in sys.platform:
     CARES_INCLUDE += (os.path.join('third_party', 'cares', 'config_openbsd'),)
-RE2_INCLUDE = (os.path.join('third_party', 're2'),)
 SSL_INCLUDE = (os.path.join('third_party', 'boringssl-with-bazel', 'src',
                             'include'),)
 UPB_INCLUDE = (os.path.join('third_party', 'upb'),)
@@ -233,7 +232,7 @@ if BUILD_WITH_SYSTEM_CARES:
 
 EXTENSION_INCLUDE_DIRECTORIES = ((PYTHON_STEM,) + CORE_INCLUDE + ABSL_INCLUDE +
                                  ADDRESS_SORTING_INCLUDE + CARES_INCLUDE +
-                                 RE2_INCLUDE + SSL_INCLUDE + UPB_INCLUDE +
+                                 SSL_INCLUDE + UPB_INCLUDE +
                                  UPB_GRPC_GENERATED_INCLUDE + ZLIB_INCLUDE)
 
 EXTENSION_LIBRARIES = ()

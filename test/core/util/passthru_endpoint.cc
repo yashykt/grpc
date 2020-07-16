@@ -27,10 +27,6 @@
 #include <inttypes.h>
 #include <string.h>
 
-#include <string>
-
-#include "absl/strings/str_format.h"
-
 #include <grpc/support/alloc.h>
 #include <grpc/support/string_util.h>
 #include "src/core/lib/iomgr/sockaddr.h"
@@ -189,9 +185,11 @@ static void half_init(half* m, passthru_endpoint* parent,
   m->parent = parent;
   grpc_slice_buffer_init(&m->read_buffer);
   m->on_read = nullptr;
-  std::string name = absl::StrFormat("passthru_endpoint_%s_%" PRIxPTR,
-                                     half_name, (intptr_t)parent);
-  m->resource_user = grpc_resource_user_create(resource_quota, name.c_str());
+  char* name;
+  gpr_asprintf(&name, "passthru_endpoint_%s_%" PRIxPTR, half_name,
+               (intptr_t)parent);
+  m->resource_user = grpc_resource_user_create(resource_quota, name);
+  gpr_free(name);
 }
 
 void grpc_passthru_endpoint_create(grpc_endpoint** client,

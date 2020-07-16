@@ -25,7 +25,7 @@ grpc_config = ENV['GRPC_CONFIG'] || 'opt'
 ENV['MACOSX_DEPLOYMENT_TARGET'] = '10.7'
 
 if ENV['AR'].nil? || ENV['AR'].size == 0
-    ENV['AR'] = RbConfig::CONFIG['AR']
+    ENV['AR'] = RbConfig::CONFIG['AR'] + ' rcs'
 end
 if ENV['CC'].nil? || ENV['CC'].size == 0
     ENV['CC'] = RbConfig::CONFIG['CC']
@@ -37,10 +37,7 @@ if ENV['LD'].nil? || ENV['LD'].size == 0
     ENV['LD'] = ENV['CC']
 end
 
-if RUBY_PLATFORM =~ /darwin/
-  ENV['AR'] = 'libtool'
-  ENV['ARFLAGS'] = '-o'
- end
+ENV['AR'] = 'libtool -o' if RUBY_PLATFORM =~ /darwin/
 
 ENV['EMBED_OPENSSL'] = 'true'
 ENV['EMBED_ZLIB'] = 'true'

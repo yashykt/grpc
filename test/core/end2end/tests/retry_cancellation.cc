@@ -21,14 +21,11 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <string>
-
-#include "absl/strings/str_cat.h"
-
 #include <grpc/byte_buffer.h>
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
 #include <grpc/support/time.h>
 
 #include "src/core/lib/channel/channel_args.h"
@@ -141,9 +138,10 @@ static void test_retry_cancellation(grpc_end2end_test_config config,
       "  } ]\n"
       "}");
   grpc_channel_args client_args = {1, &arg};
-  std::string name = absl::StrCat("retry_cancellation/%s", mode.name);
-  grpc_end2end_test_fixture f =
-      begin_test(config, name.c_str(), &client_args, nullptr);
+  char* name;
+  gpr_asprintf(&name, "retry_cancellation/%s", mode.name);
+  grpc_end2end_test_fixture f = begin_test(config, name, &client_args, nullptr);
+  gpr_free(name);
 
   cq_verifier* cqv = cq_verifier_create(f.cq);
 

@@ -23,8 +23,6 @@
 #include <ares.h>
 #include <string.h>
 
-#include "absl/strings/str_cat.h"
-
 #include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_ev_driver.h"
 
 #include <grpc/support/alloc.h>
@@ -157,10 +155,11 @@ grpc_error* grpc_ares_ev_driver_create_locked(
   grpc_ares_test_only_inject_config((*ev_driver)->channel);
   GRPC_CARES_TRACE_LOG("request:%p grpc_ares_ev_driver_create_locked", request);
   if (status != ARES_SUCCESS) {
-    grpc_error* err = GRPC_ERROR_CREATE_FROM_COPIED_STRING(
-        absl::StrCat("Failed to init ares channel. C-ares error: ",
-                     ares_strerror(status))
-            .c_str());
+    char* err_msg;
+    gpr_asprintf(&err_msg, "Failed to init ares channel. C-ares error: %s",
+                 ares_strerror(status));
+    grpc_error* err = GRPC_ERROR_CREATE_FROM_COPIED_STRING(err_msg);
+    gpr_free(err_msg);
     gpr_free(*ev_driver);
     return err;
   }

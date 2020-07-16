@@ -23,8 +23,6 @@
 
 #include <string.h>
 
-#include <string>
-
 #include <grpc/grpc.h>
 #include <grpc/grpc_security.h>
 #include <grpc/support/sync.h>
@@ -81,13 +79,13 @@ typedef enum {
 /* --- Google utils --- */
 
 /* It is the caller's responsibility to gpr_free the result if not NULL. */
-std::string grpc_get_well_known_google_credentials_file_path(void);
+char* grpc_get_well_known_google_credentials_file_path(void);
 
 /* Implementation function for the different platforms. */
-std::string grpc_get_well_known_google_credentials_file_path_impl(void);
+char* grpc_get_well_known_google_credentials_file_path_impl(void);
 
 /* Override for testing only. Not thread-safe */
-typedef std::string (*grpc_well_known_credentials_path_getter)(void);
+typedef char* (*grpc_well_known_credentials_path_getter)(void);
 void grpc_override_well_known_credentials_path_getter(
     grpc_well_known_credentials_path_getter getter);
 

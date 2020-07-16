@@ -23,10 +23,9 @@
 
 #include <string.h>
 
-#include "absl/strings/str_format.h"
-
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
 
 void grpc_chttp2_goaway_parser_init(grpc_chttp2_goaway_parser* p) {
   p->debug_data = nullptr;
@@ -40,8 +39,11 @@ grpc_error* grpc_chttp2_goaway_parser_begin_frame(grpc_chttp2_goaway_parser* p,
                                                   uint32_t length,
                                                   uint8_t /*flags*/) {
   if (length < 8) {
-    return GRPC_ERROR_CREATE_FROM_COPIED_STRING(
-        absl::StrFormat("goaway frame too short (%d bytes)", length).c_str());
+    char* msg;
+    gpr_asprintf(&msg, "goaway frame too short (%d bytes)", length);
+    grpc_error* err = GRPC_ERROR_CREATE_FROM_COPIED_STRING(msg);
+    gpr_free(msg);
+    return err;
   }
 
   gpr_free(p->debug_data);

@@ -23,7 +23,6 @@
 #include <string.h>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/strings/str_format.h"
 
 #include "src/core/lib/gpr/string.h"
 
@@ -169,9 +168,11 @@ LoadBalancingPolicyRegistry::ParseLoadBalancingConfig(const Json& json,
   LoadBalancingPolicyFactory* factory =
       g_state->GetLoadBalancingPolicyFactory(policy->first.c_str());
   if (factory == nullptr) {
-    *error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(
-        absl::StrFormat("Factory not found for policy \"%s\"", policy->first)
-            .c_str());
+    char* msg;
+    gpr_asprintf(&msg, "Factory not found for policy \"%s\"",
+                 policy->first.c_str());
+    *error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(msg);
+    gpr_free(msg);
     return nullptr;
   }
   // Parse load balancing config via factory.

@@ -1188,7 +1188,8 @@ class ConnectivityWatcher
   }
 
  private:
-  void OnConnectivityStateChange(grpc_connectivity_state new_state) override {
+  void OnConnectivityStateChange(grpc_connectivity_state new_state,
+                                 const absl::Status& /* status */) override {
     // Don't do anything until we are being shut down.
     if (new_state != GRPC_CHANNEL_SHUTDOWN) return;
     // Shut down channel.
@@ -1600,6 +1601,13 @@ void grpc_server_shutdown_and_notify(grpc_server* server,
 
   channel_broadcaster_shutdown(&broadcaster, true /* send_goaway */,
                                GRPC_ERROR_NONE);
+
+  if (server->default_resource_user != nullptr) {
+    grpc_resource_quota_unref(
+        grpc_resource_user_quota(server->default_resource_user));
+    grpc_resource_user_shutdown(server->default_resource_user);
+    grpc_resource_user_unref(server->default_resource_user);
+  }
 }
 
 void grpc_server_cancel_all_calls(grpc_server* server) {
@@ -1630,12 +1638,6 @@ void grpc_server_destroy(grpc_server* server) {
   GPR_ASSERT(server->listeners_destroyed == server->listeners.size());
   gpr_mu_unlock(&server->mu_global);
 
-  if (server->default_resource_user != nullptr) {
-    grpc_resource_quota_unref(
-        grpc_resource_user_quota(server->default_resource_user));
-    grpc_resource_user_shutdown(server->default_resource_user);
-    grpc_resource_user_unref(server->default_resource_user);
-  }
   server_unref(server);
 }
 

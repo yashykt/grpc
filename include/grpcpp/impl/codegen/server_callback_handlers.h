@@ -579,8 +579,11 @@ class CallbackServerStreamingHandler : public ::grpc::internal::MethodHandler {
     void WriteAndFinish(const ResponseType* resp, ::grpc::WriteOptions options,
                         ::grpc::Status s) override {
       // This combines the write into the finish callback
-      // TODO(vjpai): don't assert
-      GPR_CODEGEN_ASSERT(finish_ops_.SendMessagePtr(resp, options).ok());
+      // Don't send any message if the status is bad
+      if (s.ok()) {
+        // TODO(vjpai): don't assert
+        GPR_CODEGEN_ASSERT(finish_ops_.SendMessagePtr(resp, options).ok());
+      }
       Finish(std::move(s));
     }
 
@@ -781,8 +784,11 @@ class CallbackBidiHandler : public ::grpc::internal::MethodHandler {
 
     void WriteAndFinish(const ResponseType* resp, ::grpc::WriteOptions options,
                         ::grpc::Status s) override {
-      // TODO(vjpai): don't assert
-      GPR_CODEGEN_ASSERT(finish_ops_.SendMessagePtr(resp, options).ok());
+      // Don't send any message if the status is bad
+      if (s.ok()) {
+        // TODO(vjpai): don't assert
+        GPR_CODEGEN_ASSERT(finish_ops_.SendMessagePtr(resp, options).ok());
+      }
       Finish(std::move(s));
     }
 

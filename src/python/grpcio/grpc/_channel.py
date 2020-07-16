@@ -1123,11 +1123,10 @@ class _ChannelCallState(object):
         self.managed_calls = 0
 
     def __del__(self):
-        try:
+        if hasattr(self,
+                   'channel') and self.channel and cygrpc and cygrpc.StatusCode:
             self.channel.close(cygrpc.StatusCode.cancelled,
                                'Channel deallocated!')
-        except (TypeError, AttributeError):
-            pass
 
 
 def _run_channel_spin_thread(state):

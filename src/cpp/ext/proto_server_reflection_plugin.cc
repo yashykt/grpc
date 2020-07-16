@@ -64,11 +64,10 @@ static std::unique_ptr< ::grpc::ServerBuilderPlugin> CreateProtoReflection() {
 }
 
 void InitProtoReflectionServerBuilderPlugin() {
-  static struct Initialize {
-    Initialize() {
-      ::grpc::ServerBuilder::InternalAddPluginFactory(&CreateProtoReflection);
-    }
-  } initializer;
+  static bool already_here = false;
+  if (already_here) return;
+  already_here = true;
+  ::grpc::ServerBuilder::InternalAddPluginFactory(&CreateProtoReflection);
 }
 
 // Force InitProtoReflectionServerBuilderPlugin() to be called at static

@@ -236,7 +236,6 @@ grpc_cc_library(
 
 grpc_cc_test(
     name = "bm_fullstack_unary_ping_pong",
-    size = "large",
     srcs = [
         "bm_fullstack_unary_ping_pong.cc",
     ],

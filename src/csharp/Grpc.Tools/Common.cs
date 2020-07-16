@@ -22,6 +22,8 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security;
 
+[assembly: InternalsVisibleTo("Grpc.Tools.Tests")]
+
 namespace Grpc.Tools
 {
     // Metadata names (MSBuild item attributes) that we refer to often.

@@ -38,14 +38,10 @@
 #include <sys/syscall.h>
 #include <unistd.h>
 
-#include <string>
+#include <grpc/support/alloc.h>
+#include <grpc/support/string_util.h>
 
 #include "absl/container/inlined_vector.h"
-#include "absl/strings/str_cat.h"
-#include "absl/strings/str_format.h"
-
-#include <grpc/support/alloc.h>
-
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/gpr/spinlock.h"
 #include "src/core/lib/gpr/tls.h"
@@ -128,10 +124,11 @@ static const char* pollable_type_string(pollable_type t) {
   return "<invalid>";
 }
 
-static std::string pollable_desc(pollable* p) {
-  return absl::StrFormat("type=%s epfd=%d wakeup=%d",
-                         pollable_type_string(p->type), p->epfd,
-                         p->wakeup.read_fd);
+static char* pollable_desc(pollable* p) {
+  char* out;
+  gpr_asprintf(&out, "type=%s epfd=%d wakeup=%d", pollable_type_string(p->type),
+               p->epfd, p->wakeup.read_fd);
+  return out;
 }
 
 /// Shared empty pollable - used by pollset to poll on until the first fd is
@@ -173,13 +170,15 @@ struct grpc_fd {
     write_closure.InitEvent();
     error_closure.InitEvent();
 
-    std::string fd_name = absl::StrCat(name, " fd=", fd);
-    grpc_iomgr_register_object(&iomgr_object, fd_name.c_str());
+    char* fd_name;
+    gpr_asprintf(&fd_name, "%s fd=%d", name, fd);
+    grpc_iomgr_register_object(&iomgr_object, fd_name);
 #ifndef NDEBUG
     if (GRPC_TRACE_FLAG_ENABLED(grpc_trace_fd_refcount)) {
-      gpr_log(GPR_DEBUG, "FD %d %p create %s", fd, this, fd_name.c_str());
+      gpr_log(GPR_DEBUG, "FD %d %p create %s", fd, this, fd_name);
     }
 #endif
+    gpr_free(fd_name);
   }
 
   // This is really the dtor, but the poller threads waking up from
@@ -935,8 +934,9 @@ static grpc_error* pollable_epoll(pollable* p, grpc_millis deadline) {
   int timeout = poll_deadline_to_millis_timeout(deadline);
 
   if (GRPC_TRACE_FLAG_ENABLED(grpc_polling_trace)) {
-    gpr_log(GPR_INFO, "POLLABLE:%p[%s] poll for %dms", p,
-            pollable_desc(p).c_str(), timeout);
+    char* desc = pollable_desc(p);
+    gpr_log(GPR_INFO, "POLLABLE:%p[%s] poll for %dms", p, desc, timeout);
+    gpr_free(desc);
   }
 
   if (timeout != 0) {

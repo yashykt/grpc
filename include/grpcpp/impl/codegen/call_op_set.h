@@ -198,10 +198,9 @@ class WriteOptions {
 
 namespace internal {
 
-/// Default argument for CallOpSet. The Unused parameter is unused by
-/// the class, but can be used for generating multiple names for the
-/// same thing.
-template <int Unused>
+/// Default argument for CallOpSet. I is unused by the class, but can be
+/// used for generating multiple names for the same thing.
+template <int I>
 class CallNoOp {
  protected:
   void AddOp(grpc_op* /*ops*/, size_t* /*nops*/) {}
@@ -549,7 +548,7 @@ class CallOpGenericRecvMessage {
   }
 
   void FinishOp(bool* status) {
-    if (!deserialize_) return;
+    if (!deserialize_ || hijacked_) return;
     if (recv_buf_.Valid()) {
       if (*status) {
         got_message = true;

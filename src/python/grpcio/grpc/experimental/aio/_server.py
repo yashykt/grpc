@@ -162,11 +162,10 @@ class Server(_base_server.Server):
         be safe to slightly extend the underlying Cython object's life span.
         """
         if hasattr(self, '_server'):
-            if self._server.is_running():
-                cygrpc.schedule_coro_threadsafe(
-                    self._server.shutdown(None),
-                    self._loop,
-                )
+            cygrpc.schedule_coro_threadsafe(
+                self._server.shutdown(None),
+                self._loop,
+            )
 
 
 def server(migration_thread_pool: Optional[Executor] = None,

@@ -183,6 +183,7 @@ class Runner(object):
                 pass
 
         try_set_handler('SIGINT', sigint_handler)
+        try_set_handler('SIGSEGV', fault_handler)
         try_set_handler('SIGBUS', fault_handler)
         try_set_handler('SIGABRT', fault_handler)
         try_set_handler('SIGFPE', fault_handler)

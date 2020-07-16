@@ -30,6 +30,7 @@
 #include <grpc/byte_buffer_reader.h>
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
+#include <grpc/support/string_util.h>
 #include <grpc/support/time.h>
 
 #include "src/core/ext/filters/client_channel/client_channel.h"
@@ -179,11 +180,13 @@ class XdsClient::ChannelState::AdsCallState
     void OnTimerLocked(grpc_error* error) {
       if (error == GRPC_ERROR_NONE && timer_pending_) {
         timer_pending_ = false;
-        grpc_error* watcher_error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(
-            absl::StrFormat(
-                "timeout obtaining resource {type=%s name=%s} from xds server",
-                type_url_, name_)
-                .c_str());
+        char* msg;
+        gpr_asprintf(
+            &msg,
+            "timeout obtaining resource {type=%s name=%s} from xds server",
+            type_url_.c_str(), name_.c_str());
+        grpc_error* watcher_error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(msg);
+        gpr_free(msg);
         if (GRPC_TRACE_FLAG_ENABLED(grpc_xds_client_trace)) {
           gpr_log(GPR_INFO, "[xds_client %p] %s", ads_calld_->xds_client(),
                   grpc_error_string(watcher_error));
@@ -398,13 +401,15 @@ class XdsClient::ChannelState::StateWatcher
         parent_(std::move(parent)) {}
 
  private:
-  void OnConnectivityStateChange(grpc_connectivity_state new_state) override {
+  void OnConnectivityStateChange(grpc_connectivity_state new_state,
+                                 const absl::Status& status) override {
     if (!parent_->shutting_down_ &&
         new_state == GRPC_CHANNEL_TRANSIENT_FAILURE) {
       // In TRANSIENT_FAILURE.  Notify all watchers of error.
       gpr_log(GPR_INFO,
-              "[xds_client %p] xds channel in state TRANSIENT_FAILURE",
-              parent_->xds_client());
+              "[xds_client %p] xds channel in state:TRANSIENT_FAILURE "
+              "status_message:(%s)",
+              parent_->xds_client(), status.ToString().c_str());
       parent_->xds_client()->NotifyOnError(GRPC_ERROR_CREATE_FROM_STATIC_STRING(
           "xds channel in TRANSIENT_FAILURE"));
     }
@@ -891,12 +896,14 @@ void XdsClient::ChannelState::AdsCallState::AcceptLdsUpdate(
                  ? lds_update->route_config_name.c_str()
                  : "<inlined>"));
     if (lds_update->rds_update.has_value()) {
-      gpr_log(GPR_INFO, "RouteConfiguration contains %" PRIuPTR " routes",
+      gpr_log(GPR_INFO, "  RouteConfiguration contains %" PRIuPTR " routes",
               lds_update->rds_update.value().routes.size());
-      for (size_t i = 0; i < lds_update->rds_update.value().routes.size();
-           ++i) {
-        gpr_log(GPR_INFO, "Route %" PRIuPTR ":\n%s", i,
-                lds_update->rds_update.value().routes[i].ToString().c_str());
+      for (const auto& route : lds_update->rds_update.value().routes) {
+        gpr_log(GPR_INFO,
+                "  route: { service=\"%s\", "
+                "method=\"%s\" }, cluster=\"%s\" }",
+                route.service.c_str(), route.method.c_str(),
+                route.cluster_name.c_str());
       }
     }
   }
@@ -954,9 +961,12 @@ void XdsClient::ChannelState::AdsCallState::AcceptRdsUpdate(
             "[xds_client %p] RDS update received;  RouteConfiguration contains "
             "%" PRIuPTR " routes",
             this, rds_update.value().routes.size());
-    for (size_t i = 0; i < rds_update.value().routes.size(); ++i) {
-      gpr_log(GPR_INFO, "Route %" PRIuPTR ":\n%s", i,
-              rds_update.value().routes[i].ToString().c_str());
+    for (const auto& route : rds_update.value().routes) {
+      gpr_log(GPR_INFO,
+              "  route: { service=\"%s\", "
+              "method=\"%s\" }, cluster=\"%s\" }",
+              route.service.c_str(), route.method.c_str(),
+              route.cluster_name.c_str());
     }
   }
   auto& rds_state = state_map_[XdsApi::kRdsTypeUrl];
@@ -1089,8 +1099,8 @@ void XdsClient::ChannelState::AdsCallState::AcceptEdsUpdate(
                   "[xds_client %p] Priority %" PRIuPTR ", locality %" PRIuPTR
                   " %s has weight %d, contains %" PRIuPTR " server addresses",
                   xds_client(), priority, locality_count,
-                  locality.name->AsHumanReadableString().c_str(),
-                  locality.lb_weight, locality.serverlist.size());
+                  locality.name->AsHumanReadableString(), locality.lb_weight,
+                  locality.serverlist.size());
           for (size_t i = 0; i < locality.serverlist.size(); ++i) {
             std::string ipport = grpc_sockaddr_to_string(
                 &locality.serverlist[i].address(), false);
@@ -1098,8 +1108,7 @@ void XdsClient::ChannelState::AdsCallState::AcceptEdsUpdate(
                     "[xds_client %p] Priority %" PRIuPTR ", locality %" PRIuPTR
                     " %s, server address %" PRIuPTR ": %s",
                     xds_client(), priority, locality_count,
-                    locality.name->AsHumanReadableString().c_str(), i,
-                    ipport.c_str());
+                    locality.name->AsHumanReadableString(), i, ipport.c_str());
           }
           ++locality_count;
         }
@@ -2017,103 +2026,17 @@ std::string CreateServiceConfigActionCluster(const std::string& cluster_name) {
 }
 
 std::string CreateServiceConfigRoute(const std::string& action_name,
-                                     const XdsApi::RdsUpdate::RdsRoute& route) {
-  std::vector<std::string> headers;
-  for (const auto& header : route.matchers.header_matchers) {
-    std::string header_matcher;
-    switch (header.type) {
-      case XdsApi::RdsUpdate::RdsRoute::Matchers::HeaderMatcher::
-          HeaderMatcherType::EXACT:
-        header_matcher = absl::StrFormat("             \"exact_match\": \"%s\"",
-                                         header.string_matcher);
-        break;
-      case XdsApi::RdsUpdate::RdsRoute::Matchers::HeaderMatcher::
-          HeaderMatcherType::REGEX:
-        header_matcher = absl::StrFormat("             \"regex_match\": \"%s\"",
-                                         header.regex_match->pattern());
-        break;
-      case XdsApi::RdsUpdate::RdsRoute::Matchers::HeaderMatcher::
-          HeaderMatcherType::RANGE:
-        header_matcher = absl::StrFormat(
-            "             \"range_match\":{\n"
-            "              \"start\":%d,\n"
-            "              \"end\":%d\n"
-            "             }",
-            header.range_start, header.range_end);
-        break;
-      case XdsApi::RdsUpdate::RdsRoute::Matchers::HeaderMatcher::
-          HeaderMatcherType::PRESENT:
-        header_matcher =
-            absl::StrFormat("             \"present_match\": %s",
-                            header.present_match ? "true" : "false");
-        break;
-      case XdsApi::RdsUpdate::RdsRoute::Matchers::HeaderMatcher::
-          HeaderMatcherType::PREFIX:
-        header_matcher = absl::StrFormat(
-            "             \"prefix_match\": \"%s\"", header.string_matcher);
-        break;
-      case XdsApi::RdsUpdate::RdsRoute::Matchers::HeaderMatcher::
-          HeaderMatcherType::SUFFIX:
-        header_matcher = absl::StrFormat(
-            "             \"suffix_match\": \"%s\"", header.string_matcher);
-        break;
-      default:
-        break;
-    }
-    std::vector<std::string> header_parts;
-    header_parts.push_back(
-        absl::StrFormat("           { \n"
-                        "             \"name\": \"%s\",\n",
-                        header.name));
-    header_parts.push_back(header_matcher);
-    if (header.invert_match) {
-      header_parts.push_back(
-          absl::StrFormat(",\n"
-                          "             \"invert_match\": true"));
-    }
-    header_parts.push_back(
-        absl::StrFormat("\n"
-                        "           }"));
-    headers.push_back(absl::StrJoin(header_parts, ""));
-  }
-  std::vector<std::string> headers_service_config;
-  if (!headers.empty()) {
-    headers_service_config.push_back("\"headers\":[\n");
-    headers_service_config.push_back(absl::StrJoin(headers, ","));
-    headers_service_config.push_back("           ],\n");
-  }
-  std::string path_match_str;
-  switch (route.matchers.path_matcher.type) {
-    case XdsApi::RdsUpdate::RdsRoute::Matchers::PathMatcher::PathMatcherType::
-        PREFIX:
-      path_match_str = absl::StrFormat(
-          "\"prefix\": \"%s\",\n", route.matchers.path_matcher.string_matcher);
-      break;
-    case XdsApi::RdsUpdate::RdsRoute::Matchers::PathMatcher::PathMatcherType::
-        PATH:
-      path_match_str = absl::StrFormat(
-          "\"path\": \"%s\",\n", route.matchers.path_matcher.string_matcher);
-      break;
-    case XdsApi::RdsUpdate::RdsRoute::Matchers::PathMatcher::PathMatcherType::
-        REGEX:
-      path_match_str =
-          absl::StrFormat("\"regex\": \"%s\",\n",
-                          route.matchers.path_matcher.regex_matcher->pattern());
-      break;
-  }
+                                     const std::string& service,
+                                     const std::string& method) {
   return absl::StrFormat(
       "      { \n"
-      "           %s"
-      "           %s"
-      "           %s"
-      "           \"action\": \"%s\"\n"
+      "         \"methodName\": {\n"
+      "           \"service\": \"%s\",\n"
+      "           \"method\": \"%s\"\n"
+      "        },\n"
+      "        \"action\": \"%s\"\n"
       "      }",
-      path_match_str, absl::StrJoin(headers_service_config, ""),
-      route.matchers.fraction_per_million.has_value()
-          ? absl::StrFormat("\"match_fraction\":%d,\n",
-                            route.matchers.fraction_per_million.value())
-          : "",
-      action_name);
+      service, method, action_name);
 }
 
 // Create the service config for one weighted cluster.
@@ -2295,7 +2218,7 @@ grpc_error* XdsClient::CreateServiceConfig(
         absl::StrFormat("%s:%s",
                         route.weighted_clusters.empty() ? "cds" : "weighted",
                         action_name),
-        route));
+        route.service, route.method));
   }
   std::vector<std::string> config_parts;
   config_parts.push_back(

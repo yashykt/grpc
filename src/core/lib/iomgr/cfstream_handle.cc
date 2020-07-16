@@ -156,7 +156,6 @@ CFStreamHandle::~CFStreamHandle() {
   open_event_.DestroyEvent();
   read_event_.DestroyEvent();
   write_event_.DestroyEvent();
-  dispatch_release(dispatch_queue_);
 }
 
 void CFStreamHandle::NotifyOnOpen(grpc_closure* closure) {

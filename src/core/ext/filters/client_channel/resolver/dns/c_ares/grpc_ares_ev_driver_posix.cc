@@ -24,8 +24,6 @@
 #include <string.h>
 #include <sys/ioctl.h>
 
-#include "absl/strings/str_cat.h"
-
 #include "src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_ev_driver.h"
 
 #include <grpc/support/alloc.h>
@@ -43,13 +41,15 @@ namespace grpc_core {
 class GrpcPolledFdPosix : public GrpcPolledFd {
  public:
   GrpcPolledFdPosix(ares_socket_t as, grpc_pollset_set* driver_pollset_set)
-      : name_(absl::StrCat("c-ares fd: ", (int)as)), as_(as) {
-    fd_ = grpc_fd_create((int)as, name_.c_str(), false);
+      : as_(as) {
+    gpr_asprintf(&name_, "c-ares fd: %d", (int)as);
+    fd_ = grpc_fd_create((int)as, name_, false);
     driver_pollset_set_ = driver_pollset_set;
     grpc_pollset_set_add_fd(driver_pollset_set_, fd_);
   }
 
   ~GrpcPolledFdPosix() {
+    gpr_free(name_);
     grpc_pollset_set_del_fd(driver_pollset_set_, fd_);
     /* c-ares library will close the fd inside grpc_fd. This fd may be picked up
        immediately by another thread, and should not be closed by the following
@@ -78,10 +78,9 @@ class GrpcPolledFdPosix : public GrpcPolledFd {
 
   ares_socket_t GetWrappedAresSocketLocked() override { return as_; }
 
-  const char* GetName() override { return name_.c_str(); }
+  const char* GetName() override { return name_; }
 
- private:
-  std::string name_;
+  char* name_;
   ares_socket_t as_;
   grpc_fd* fd_;
   grpc_pollset_set* driver_pollset_set_;

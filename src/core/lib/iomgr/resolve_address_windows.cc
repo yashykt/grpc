@@ -29,10 +29,6 @@
 #include <string.h>
 #include <sys/types.h>
 
-#include <string>
-
-#include "absl/strings/str_format.h"
-
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
 #include <grpc/support/log_windows.h>
@@ -69,14 +65,18 @@ static grpc_error* windows_blocking_resolve_address(
   std::string port;
   grpc_core::SplitHostPort(name, &host, &port);
   if (host.empty()) {
-    error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(
-        absl::StrFormat("unparseable host:port: '%s'", name).c_str());
+    char* msg;
+    gpr_asprintf(&msg, "unparseable host:port: '%s'", name);
+    error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(msg);
+    gpr_free(msg);
     goto done;
   }
   if (port.empty()) {
     if (default_port == NULL) {
-      error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(
-          absl::StrFormat("no port in name '%s'", name).c_str());
+      char* msg;
+      gpr_asprintf(&msg, "no port in name '%s'", name);
+      error = GRPC_ERROR_CREATE_FROM_COPIED_STRING(msg);
+      gpr_free(msg);
       goto done;
     }
     port = default_port;

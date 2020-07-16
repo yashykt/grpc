@@ -405,7 +405,6 @@ libs:
   - src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_wrapper.h
   - src/core/ext/filters/client_channel/resolver/dns/dns_resolver_selection.h
   - src/core/ext/filters/client_channel/resolver/fake/fake_resolver.h
-  - src/core/ext/filters/client_channel/resolver/xds/xds_resolver.h
   - src/core/ext/filters/client_channel/resolver_factory.h
   - src/core/ext/filters/client_channel/resolver_registry.h
   - src/core/ext/filters/client_channel/resolver_result_parsing.h
@@ -426,7 +425,6 @@ libs:
   - src/core/ext/filters/client_channel/xds/xds_client_stats.h
   - src/core/ext/filters/deadline/deadline_filter.h
   - src/core/ext/filters/http/client/http_client_filter.h
-  - src/core/ext/filters/http/client/util.h
   - src/core/ext/filters/http/client_authority_filter.h
   - src/core/ext/filters/http/message_compress/message_compress_filter.h
   - src/core/ext/filters/http/message_compress/message_decompress_filter.h
@@ -875,7 +873,6 @@ libs:
   - src/core/ext/filters/client_idle/client_idle_filter.cc
   - src/core/ext/filters/deadline/deadline_filter.cc
   - src/core/ext/filters/http/client/http_client_filter.cc
-  - src/core/ext/filters/http/client/util.cc
   - src/core/ext/filters/http/client_authority_filter.cc
   - src/core/ext/filters/http/http_filters_plugin.cc
   - src/core/ext/filters/http/message_compress/message_compress_filter.cc
@@ -1298,6 +1295,7 @@ libs:
   - upb
   - absl/types:optional
   - absl/strings:strings
+  - absl/status:status
   - absl/container:inlined_vector
   baselib: true
   deps_linkage: static
@@ -1468,7 +1466,6 @@ libs:
   - src/core/ext/filters/client_channel/resolver/dns/c_ares/grpc_ares_wrapper.h
   - src/core/ext/filters/client_channel/resolver/dns/dns_resolver_selection.h
   - src/core/ext/filters/client_channel/resolver/fake/fake_resolver.h
-  - src/core/ext/filters/client_channel/resolver/xds/xds_resolver.h
   - src/core/ext/filters/client_channel/resolver_factory.h
   - src/core/ext/filters/client_channel/resolver_registry.h
   - src/core/ext/filters/client_channel/resolver_result_parsing.h
@@ -1489,7 +1486,6 @@ libs:
   - src/core/ext/filters/client_channel/xds/xds_client_stats.h
   - src/core/ext/filters/deadline/deadline_filter.h
   - src/core/ext/filters/http/client/http_client_filter.h
-  - src/core/ext/filters/http/client/util.h
   - src/core/ext/filters/http/client_authority_filter.h
   - src/core/ext/filters/http/message_compress/message_compress_filter.h
   - src/core/ext/filters/http/message_compress/message_decompress_filter.h
@@ -1874,7 +1870,6 @@ libs:
   - src/core/ext/filters/client_idle/client_idle_filter.cc
   - src/core/ext/filters/deadline/deadline_filter.cc
   - src/core/ext/filters/http/client/http_client_filter.cc
-  - src/core/ext/filters/http/client/util.cc
   - src/core/ext/filters/http/client_authority_filter.cc
   - src/core/ext/filters/http/http_filters_plugin.cc
   - src/core/ext/filters/http/message_compress/message_compress_filter.cc
@@ -2222,6 +2217,7 @@ libs:
   - upb
   - absl/types:optional
   - absl/strings:strings
+  - absl/status:status
   - absl/container:inlined_vector
   baselib: true
   deps_linkage: static

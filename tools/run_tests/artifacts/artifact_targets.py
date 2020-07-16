@@ -253,8 +253,7 @@ class CSharpExtArtifact:
                     cmake_arch_option = '-DOPENSSL_NO_ASM=ON'
                 return create_docker_jobspec(
                     self.name,
-                    'tools/dockerfile/grpc_artifact_centos6_{}'.format(
-                        self.arch),
+                    'tools/dockerfile/grpc_artifact_centos6_%s' % self.arch,
                     'tools/run_tests/artifacts/build_artifact_csharp.sh',
                     environ={'CMAKE_ARCH_OPTION': cmake_arch_option})
             else:
@@ -317,8 +316,7 @@ class ProtocArtifact:
             if self.platform == 'linux':
                 return create_docker_jobspec(
                     self.name,
-                    'tools/dockerfile/grpc_artifact_centos6_{}'.format(
-                        self.arch),
+                    'tools/dockerfile/grpc_artifact_protoc',
                     'tools/run_tests/artifacts/build_artifact_protoc.sh',
                     environ=environ)
             else:

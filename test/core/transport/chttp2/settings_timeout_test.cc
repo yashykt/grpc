@@ -16,18 +16,16 @@
  *
  */
 
-#include <functional>
-#include <memory>
-#include <string>
-#include <thread>
-
-#include <gtest/gtest.h>
-
-#include "absl/strings/str_cat.h"
-
 #include <grpc/grpc.h>
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
+
+#include <functional>
+#include <memory>
+#include <thread>
+
+#include <gtest/gtest.h>
 
 #include "src/core/lib/iomgr/endpoint.h"
 #include "src/core/lib/iomgr/error.h"
@@ -113,7 +111,7 @@ class Client {
     EventState state;
     grpc_tcp_client_connect(state.closure(), &endpoint_, pollset_set,
                             nullptr /* channel_args */, server_addresses->addrs,
-                            grpc_core::ExecCtx::Get()->Now() + 1000);
+                            1000);
     ASSERT_TRUE(PollUntilDone(
         &state,
         grpc_timespec_to_millis_round_up(gpr_inf_future(GPR_CLOCK_MONOTONIC))));
@@ -222,14 +220,15 @@ class Client {
 TEST(SettingsTimeout, Basic) {
   // Construct server address string.
   const int server_port = grpc_pick_unused_port_or_die();
-  std::string server_address_string = absl::StrCat("localhost:", server_port);
+  char* server_address_string;
+  gpr_asprintf(&server_address_string, "localhost:%d", server_port);
   // Start server.
-  gpr_log(GPR_INFO, "starting server on %s", server_address_string.c_str());
-  ServerThread server_thread(server_address_string.c_str());
+  gpr_log(GPR_INFO, "starting server on %s", server_address_string);
+  ServerThread server_thread(server_address_string);
   server_thread.Start();
   // Create client and connect to server.
   gpr_log(GPR_INFO, "starting client connect");
-  Client client(server_address_string.c_str());
+  Client client(server_address_string);
   client.Connect();
   // Client read.  Should fail due to server dropping connection.
   gpr_log(GPR_INFO, "starting client read");
@@ -241,6 +240,7 @@ TEST(SettingsTimeout, Basic) {
   gpr_log(GPR_INFO, "shutting down server");
   server_thread.Shutdown();
   // Clean up.
+  gpr_free(server_address_string);
 }
 
 }  // namespace

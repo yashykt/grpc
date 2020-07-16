@@ -32,12 +32,9 @@
 #include <sys/socket.h>
 #include <unistd.h>
 
-#include <string>
-
-#include "absl/strings/str_cat.h"
-
 #include <grpc/support/alloc.h>
 #include <grpc/support/log.h>
+#include <grpc/support/string_util.h>
 
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/gpr/murmur_hash.h"
@@ -384,8 +381,10 @@ static grpc_fd* fd_create(int fd, const char* name, bool track_err) {
   r->released = 0;
   gpr_atm_no_barrier_store(&r->pollhup, 0);
 
-  std::string name2 = absl::StrCat(name, " fd=", fd);
-  grpc_iomgr_register_object(&r->iomgr_object, name2.c_str());
+  char* name2;
+  gpr_asprintf(&name2, "%s fd=%d", name, fd);
+  grpc_iomgr_register_object(&r->iomgr_object, name2);
+  gpr_free(name2);
   fork_fd_list_add_grpc_fd(r);
   return r;
 }
