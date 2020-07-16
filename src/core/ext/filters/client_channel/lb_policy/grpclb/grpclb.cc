@@ -298,7 +298,7 @@ class GrpcLb : public LoadBalancingPolicy {
 
     RefCountedPtr<SubchannelInterface> CreateSubchannel(
         const grpc_channel_args& args) override;
-    void UpdateState(grpc_connectivity_state state,
+    void UpdateState(grpc_connectivity_state state, const absl::Status& status,
                      std::unique_ptr<SubchannelPicker> picker) override;
     void RequestReresolution() override;
     void AddTraceEvent(TraceSeverity severity,
@@ -658,6 +658,7 @@ RefCountedPtr<SubchannelInterface> GrpcLb::Helper::CreateSubchannel(
 }
 
 void GrpcLb::Helper::UpdateState(grpc_connectivity_state state,
+                                 const absl::Status& status,
                                  std::unique_ptr<SubchannelPicker> picker) {
   if (parent_->shutting_down_) return;
   // Record whether child policy reports READY.
@@ -691,7 +692,8 @@ void GrpcLb::Helper::UpdateState(grpc_connectivity_state state,
               "[grpclb %p helper %p] state=%s passing child picker %p as-is",
               parent_.get(), this, ConnectivityStateName(state), picker.get());
     }
-    parent_->channel_control_helper()->UpdateState(state, std::move(picker));
+    parent_->channel_control_helper()->UpdateState(state, status,
+                                                   std::move(picker));
     return;
   }
   // Cases 2 and 3a: wrap picker from the child in our own picker.
@@ -705,7 +707,7 @@ void GrpcLb::Helper::UpdateState(grpc_connectivity_state state,
     client_stats = parent_->lb_calld_->client_stats()->Ref();
   }
   parent_->channel_control_helper()->UpdateState(
-      state,
+      state, status,
       absl::make_unique<Picker>(parent_.get(), parent_->serverlist_,
                                 std::move(picker), std::move(client_stats)));
 }

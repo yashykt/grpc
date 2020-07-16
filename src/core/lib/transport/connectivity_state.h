@@ -96,8 +96,9 @@ class AsyncConnectivityStateWatcherInterface
 class ConnectivityStateTracker {
  public:
   ConnectivityStateTracker(const char* name,
-                           grpc_connectivity_state state = GRPC_CHANNEL_IDLE)
-      : name_(name), state_(state) {}
+                           grpc_connectivity_state state = GRPC_CHANNEL_IDLE,
+                           const absl::Status& status = absl::Status())
+      : name_(name), state_(state), status_(status) {}
 
   ~ConnectivityStateTracker();
 
@@ -121,6 +122,10 @@ class ConnectivityStateTracker {
   // Gets the current state.
   // Thread safe; no need to use an external lock.
   grpc_connectivity_state state() const;
+
+  // Get the current status.
+  // Not thread safe; access must be serialized with an external lock.
+  absl::Status status() const { return status_; }
 
  private:
   const char* name_;

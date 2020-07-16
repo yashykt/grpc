@@ -267,7 +267,8 @@ class ChannelData {
   ~ChannelData();
 
   void UpdateStateAndPickerLocked(
-      grpc_connectivity_state state, const char* reason,
+      grpc_connectivity_state state, const absl::Status& status,
+      const char* reason,
       std::unique_ptr<LoadBalancingPolicy::SubchannelPicker> picker);
 
   void UpdateServiceConfigInDataPlaneLocked(
@@ -1321,19 +1322,21 @@ class ChannelData::ClientChannelControlHelper
   }
 
   void UpdateState(
-      grpc_connectivity_state state,
+      grpc_connectivity_state state, const absl::Status& status,
       std::unique_ptr<LoadBalancingPolicy::SubchannelPicker> picker) override {
     grpc_error* disconnect_error = chand_->disconnect_error();
     if (GRPC_TRACE_FLAG_ENABLED(grpc_client_channel_routing_trace)) {
       const char* extra = disconnect_error == GRPC_ERROR_NONE
                               ? ""
                               : " (ignoring -- channel shutting down)";
-      gpr_log(GPR_INFO, "chand=%p: update: state=%s picker=%p%s", chand_,
-              ConnectivityStateName(state), picker.get(), extra);
+      gpr_log(GPR_INFO, "chand=%p: update: state=%s status=(%s) picker=%p%s",
+              chand_, ConnectivityStateName(state), status.ToString().c_str(),
+              picker.get(), extra);
     }
     // Do update only if not shutting down.
     if (disconnect_error == GRPC_ERROR_NONE) {
-      chand_->UpdateStateAndPickerLocked(state, "helper", std::move(picker));
+      chand_->UpdateStateAndPickerLocked(state, status, "helper",
+                                         std::move(picker));
     }
   }
 
@@ -1670,7 +1673,8 @@ ChannelData::~ChannelData() {
 }
 
 void ChannelData::UpdateStateAndPickerLocked(
-    grpc_connectivity_state state, const char* reason,
+    grpc_connectivity_state state, const absl::Status& status,
+    const char* reason,
     std::unique_ptr<LoadBalancingPolicy::SubchannelPicker> picker) {
   // Clean the control plane when entering IDLE.
   if (picker_ == nullptr) {
@@ -1680,7 +1684,7 @@ void ChannelData::UpdateStateAndPickerLocked(
     received_first_resolver_result_ = false;
   }
   // Update connectivity state.
-  state_tracker_.SetState(state, absl::Status(), reason);
+  state_tracker_.SetState(state, status, reason);
   if (channelz_node_ != nullptr) {
     channelz_node_->SetConnectivityState(state);
     channelz_node_->AddTraceEvent(
@@ -1907,8 +1911,8 @@ void ChannelData::StartTransportOpLocked(grpc_transport_op* op) {
         static_cast<grpc_connectivity_state>(value) == GRPC_CHANNEL_IDLE) {
       if (disconnect_error() == GRPC_ERROR_NONE) {
         // Enter IDLE state.
-        UpdateStateAndPickerLocked(GRPC_CHANNEL_IDLE, "channel entering IDLE",
-                                   nullptr);
+        UpdateStateAndPickerLocked(GRPC_CHANNEL_IDLE, absl::Status(),
+                                   "channel entering IDLE", nullptr);
       }
       GRPC_ERROR_UNREF(op->disconnect_with_error);
     } else {
@@ -1917,7 +1921,10 @@ void ChannelData::StartTransportOpLocked(grpc_transport_op* op) {
                  GRPC_ERROR_NONE);
       disconnect_error_.Store(op->disconnect_with_error, MemoryOrder::RELEASE);
       UpdateStateAndPickerLocked(
-          GRPC_CHANNEL_SHUTDOWN, "shutdown from API",
+          GRPC_CHANNEL_SHUTDOWN,
+          absl::Status(absl::StatusCode::kUnavailable,
+                       grpc_error_string(op->disconnect_with_error)),
+          "shutdown from API",
           absl::make_unique<LoadBalancingPolicy::TransientFailurePicker>(
               GRPC_ERROR_REF(op->disconnect_with_error)));
     }
