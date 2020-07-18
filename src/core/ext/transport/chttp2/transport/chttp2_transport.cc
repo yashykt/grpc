@@ -564,12 +564,8 @@ static void close_transport_locked(grpc_chttp2_transport* t,
     }
     GPR_ASSERT(error != GRPC_ERROR_NONE);
     t->closed_with_error = GRPC_ERROR_REF(error);
-    connectivity_state_set(
-        t, GRPC_CHANNEL_SHUTDOWN,
-        absl::Status(
-            absl::StatusCode::kUnavailable,
-            absl::StrFormat("Transport closed %s", grpc_error_string(error))),
-        "close_transport");
+    connectivity_state_set(t, GRPC_CHANNEL_SHUTDOWN, absl::Status(),
+                           "close_transport");
     if (t->ping_state.is_delayed_ping_timer_set) {
       grpc_timer_cancel(&t->ping_state.delayed_ping_timer);
     }
@@ -1094,7 +1090,8 @@ void grpc_chttp2_add_incoming_goaway(grpc_chttp2_transport* t,
             goaway_error, grpc_error_string(t->goaway_error));
   }
   absl::Status status =
-      absl::Status(absl::StatusCode::kUnavailable, "Transport received GOAWAY");
+      absl::Status(grpc_error_get_status_code(t->goaway_error),
+                   grpc_error_string(t->goaway_error));
   /* When a client receives a GOAWAY with error code ENHANCE_YOUR_CALM and debug
    * data equal to "too_many_pings", it should log the occurrence at a log level
    * that is enabled by default and double the configured KEEPALIVE_TIME used

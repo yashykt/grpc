@@ -360,7 +360,14 @@ class Subchannel::ConnectedSubchannelStateWatcher
                       std::string(keepalive_throttling.value()).c_str());
             }
           }
-          c->SetConnectivityStateLocked(GRPC_CHANNEL_TRANSIENT_FAILURE, status);
+          // We need to construct our own status if the underlying state was
+          // shutdown since the accompanying status will be StatusCode::OK
+          // otherwise.
+          if (new_state == GRPC_CHANNEL_SHUTDOWN) {
+            status = absl::Status(absl::StatusCode::kUnavailable,
+                                  "Subchannel has disconnected.");
+          }
+          c->SetConnectivityStateLocked(new_state, status);
           c->backoff_begun_ = false;
           c->backoff_.Reset();
         }
