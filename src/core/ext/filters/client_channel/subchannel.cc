@@ -363,11 +363,11 @@ class Subchannel::ConnectedSubchannelStateWatcher
           // We need to construct our own status if the underlying state was
           // shutdown since the accompanying status will be StatusCode::OK
           // otherwise.
-          if (new_state == GRPC_CHANNEL_SHUTDOWN) {
-            status = absl::Status(absl::StatusCode::kUnavailable,
-                                  "Subchannel has disconnected.");
-          }
-          c->SetConnectivityStateLocked(new_state, status);
+          c->SetConnectivityStateLocked(
+              new_state, new_state == GRPC_CHANNEL_SHUTDOWN
+                             ? absl::Status(absl::StatusCode::kUnavailable,
+                                            "Subchannel has disconnected.")
+                             : status);
           c->backoff_begun_ = false;
           c->backoff_.Reset();
         }
