@@ -1887,6 +1887,8 @@ void PrintSourceClientMethod(grpc_generator::Printer* printer,
                    "const $Request$& request, $Response$* response) {\n");
     printer->Print(*vars,
                    "  return ::grpc::internal::BlockingUnaryCall"
+                   "< $Request$, $Response$, ::grpc::protobuf::MessageLite, "
+                   "::grpc::protobuf::MessageLite>"
                    "(channel_.get(), rpcmethod_$Method$_, "
                    "context, request, response);\n}\n\n");
 
@@ -1897,6 +1899,8 @@ void PrintSourceClientMethod(grpc_generator::Printer* printer,
                    "std::function<void(::grpc::Status)> f) {\n");
     printer->Print(*vars,
                    "  ::grpc::internal::CallbackUnaryCall"
+                   "< $Request$, $Response$, ::grpc::protobuf::MessageLite, "
+                   "::grpc::protobuf::MessageLite>"
                    "(stub_->channel_.get(), stub_->rpcmethod_$Method$_, "
                    "context, request, response, std::move(f));\n}\n\n");
 
