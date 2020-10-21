@@ -2292,6 +2292,7 @@ libs:
   - src/cpp/client/credentials_cc.cc
   - src/cpp/client/insecure_credentials.cc
   - src/cpp/client/secure_credentials.cc
+  - src/cpp/client/xds_credentials.cc
   - src/cpp/codegen/codegen_init.cc
   - src/cpp/common/alarm.cc
   - src/cpp/common/auth_property_iterator.cc
@@ -4755,6 +4756,26 @@ targets:
   deps:
   - grpc++_test_util
   - grpc++_alts
+  - grpc_test_util
+  - grpc++
+  - grpc
+  - gpr
+  - address_sorting
+  - upb
+- name: async_end2end_no_xds_test
+  gtest: true
+  build: test
+  language: c++
+  headers: []
+  src:
+  - src/proto/grpc/health/v1/health.proto
+  - src/proto/grpc/testing/duplicate/echo_duplicate.proto
+  - src/proto/grpc/testing/echo.proto
+  - src/proto/grpc/testing/echo_messages.proto
+  - src/proto/grpc/testing/simple_messages.proto
+  - test/cpp/end2end/async_end2end_test.cc
+  deps:
+  - grpc++_test_util
   - grpc_test_util
   - grpc++
   - grpc
