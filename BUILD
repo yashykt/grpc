@@ -42,6 +42,7 @@ config_setting(
     values = {"define": "grpc_no_ares=true"},
 )
 
+// TODO(yashykt): Add a build target that makes sure that builds succeed with flag.
 config_setting(
     name = "grpc_no_xds",
     values = {"define": "grpc_no_xds=true"},
@@ -348,6 +349,7 @@ grpc_cc_library(
 grpc_cc_library(
     name = "grpc++",
     language = "c++",
+    public_hdrs = GRPCXX_PUBLIC_HDRS,    
     select_deps = {
         "//conditions:default": [
             "grpc++_no_xds",

@@ -82,26 +82,6 @@ grpc_cc_test(
 )
 
 grpc_cc_test(
-    name = "async_end2end_no_xds_test",
-    srcs = ["async_end2end_test.cc"],
-    external_deps = [
-        "gtest",
-    ],
-    tags = ["no_test_ios"],
-    deps = [
-        "//:gpr",
-        "//:grpc",
-        "//:grpc++_no_xds",
-        "//src/proto/grpc/health/v1:health_proto",
-        "//src/proto/grpc/testing:echo_messages_proto",
-        "//src/proto/grpc/testing:echo_proto",
-        "//src/proto/grpc/testing/duplicate:echo_duplicate_proto",
-        "//test/core/util:grpc_test_util",
-        "//test/cpp/util:test_util",
-    ],
-)
-
-grpc_cc_test(
     name = "time_change_test",
     srcs = ["time_change_test.cc"],
     data = [
