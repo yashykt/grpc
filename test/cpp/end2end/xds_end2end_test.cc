@@ -1450,7 +1450,8 @@ class FakeCertificateProviderFactory
   CreateCertificateProvider(
       grpc_core::RefCountedPtr<grpc_core::CertificateProviderFactory::Config>
           config) override {
-    return grpc_core::MakeRefCounted<FakeCertificateProvider>(*(*cert_data_map_));
+    return grpc_core::MakeRefCounted<FakeCertificateProvider>(
+        *(*cert_data_map_));
   }
 
  private:
@@ -1470,26 +1471,25 @@ int ServerAuthCheckSchedule(void* /* config_user_data */,
 }
 
 std::shared_ptr<ChannelCredentials> CreateTlsFallbackCredentials() {
-  std::string root_cert = ReadFile(kCaCertPath);
-  std::string identity_cert = ReadFile(kServerCertPath);
-  std::string private_key = ReadFile(kServerKeyPath);
-  std::vector<experimental::IdentityKeyCertPair> identity_key_cert_pairs = {
-      {private_key, identity_cert}};
-  auto certificate_provider =
-      std::make_shared<grpc::experimental::StaticDataCertificateProvider>(
-          root_cert, identity_key_cert_pairs);
-  grpc::experimental::TlsChannelCredentialsOptions options(
-      std::move(certificate_provider));
-  options.watch_root_certs();
-  options.watch_identity_key_cert_pairs();
-  // options.set_server_verification_option(GRPC_TLS_SKIP_HOSTNAME_VERIFICATION);
-  // grpc_tls_server_authorization_check_config* check_config =
-  //    grpc_tls_server_authorization_check_config_create(
-  //        nullptr, ServerAuthCheckSchedule, nullptr, nullptr);
-  // grpc_tls_credentials_options_set_server_authorization_check_config(
-  //    options, check_config);
-  auto channel_creds = grpc::experimental::TlsCredentials(options);
-  // grpc_tls_server_authorization_check_config_release(check_config);
+  grpc_tls_credentials_options* options = grpc_tls_credentials_options_create();
+  grpc_tls_credentials_options_set_server_verification_option(
+      options, GRPC_TLS_SKIP_HOSTNAME_VERIFICATION);
+  grpc_tls_credentials_options_set_certificate_provider(
+      options,
+      grpc_core::MakeRefCounted<grpc_core::StaticDataCertificateProvider>(
+          ReadFile(kCaCertPath),
+          ReadTlsIdentityPair(kServerKeyPath, kServerCertPath))
+          .get());
+  grpc_tls_credentials_options_watch_root_certs(options);
+  grpc_tls_credentials_options_watch_identity_key_cert_pairs(options);
+  grpc_tls_server_authorization_check_config* check_config =
+      grpc_tls_server_authorization_check_config_create(
+          nullptr, ServerAuthCheckSchedule, nullptr, nullptr);
+  grpc_tls_credentials_options_set_server_authorization_check_config(
+      options, check_config);
+  auto channel_creds = std::make_shared<SecureChannelCredentials>(
+      grpc_tls_credentials_create(options));
+  grpc_tls_server_authorization_check_config_release(check_config);
   auto call_creds = std::make_shared<SecureCallCredentials>(
       grpc_md_only_test_credentials_create(g_kFallbackCallCredsMdKey,
                                            g_kFallbackCallCredsMdValue, false));
@@ -5316,6 +5316,7 @@ class XdsSecurityTest : public BasicTest {
   void TearDown() override {
     g_fake1_cert_data_map = nullptr;
     g_fake2_cert_data_map = nullptr;
+    BasicTest::TearDown();
   }
 
   // Sends CDS updates with the new security configuration and verifies that
@@ -5389,7 +5390,25 @@ class XdsSecurityTest : public BasicTest {
   grpc_core::PemKeyCertPairList bad_identity_pair_;
 };
 
-TEST_P(XdsSecurityTest, UnknownCertificateProviders) {
+TEST_P(XdsSecurityTest, UnknownRootCertificateProvider) {
+  auto cluster = default_cluster_;
+  auto* transport_socket = cluster.mutable_transport_socket();
+  transport_socket->set_name("envoy.transport_sockets.tls");
+  UpstreamTlsContext upstream_tls_context;
+  upstream_tls_context.mutable_common_tls_context()
+      ->mutable_combined_validation_context()
+      ->mutable_validation_context_certificate_provider_instance()
+      ->set_instance_name("unknown");
+  transport_socket->mutable_typed_config()->PackFrom(upstream_tls_context);
+  balancers_[0]->ads_service()->SetCdsResource(cluster);
+  CheckRpcSendFailure(1, RpcOptions(), StatusCode::UNAVAILABLE);
+}
+
+
+TEST_P(XdsSecurityTest, UnknownIdentityCertificateProvider) {
+  FakeCertificateProvider::CertDataMap fake1_cert_map = {
+      {"", {root_cert_, identity_pair_1_}}};
+  g_fake1_cert_data_map = &fake1_cert_map;  
   auto cluster = default_cluster_;
   auto* transport_socket = cluster.mutable_transport_socket();
   transport_socket->set_name("envoy.transport_sockets.tls");
@@ -5400,7 +5419,7 @@ TEST_P(XdsSecurityTest, UnknownCertificateProviders) {
   upstream_tls_context.mutable_common_tls_context()
       ->mutable_combined_validation_context()
       ->mutable_validation_context_certificate_provider_instance()
-      ->set_instance_name("unknown");
+      ->set_instance_name("fake_plugin1");
   transport_socket->mutable_typed_config()->PackFrom(upstream_tls_context);
   balancers_[0]->ads_service()->SetCdsResource(cluster);
   CheckRpcSendFailure(1, RpcOptions(), StatusCode::UNAVAILABLE);
