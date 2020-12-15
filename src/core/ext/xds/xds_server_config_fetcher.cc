@@ -42,6 +42,7 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
   void StartWatch(std::string listening_address, grpc_channel_args* args,
                   std::unique_ptr<grpc_server_config_fetcher::WatcherInterface>
                       watcher) override {
+    grpc_server_config_fetcher::WatcherInterface* watcher_ptr = watcher.get();
     auto listener_watcher = absl::make_unique<ListenerWatcher>(
         std::move(watcher), args, xds_client_);
     auto* listener_watcher_ptr = listener_watcher.get();
@@ -51,7 +52,7 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
                      listening_address),
         std::move(listener_watcher));
     MutexLock lock(&mu_);
-    auto& watcher_state = watchers_[watcher.get()];
+    auto& watcher_state = watchers_[watcher_ptr];
     watcher_state.listening_address = listening_address;
     watcher_state.listener_watcher = listener_watcher_ptr;
   }
