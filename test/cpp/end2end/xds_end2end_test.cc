@@ -317,6 +317,8 @@ class BackendServiceImpl
       clients_.insert(context->peer());
       last_peer_identity_.clear();
       for (const auto& entry : peer_identity) {
+        gpr_log(GPR_ERROR, "identity %s",
+                std::string(entry.data(), entry.size()).c_str());
         last_peer_identity_.emplace_back(entry.data(), entry.size());
       }
     }
@@ -5410,6 +5412,10 @@ class XdsSecurityTest : public BasicTest {
             backends_[0]->backend_service()->last_peer_identity() ==
                 expected_authenticated_identity) {
           break;
+        } else {
+          gpr_log(GPR_ERROR, "%d",
+                  backends_[0]->backend_service()->last_peer_identity() ==
+                      expected_authenticated_identity);
         }
       }
     }
