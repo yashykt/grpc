@@ -290,6 +290,7 @@ class grpc_fake_server_security_connector
   void add_handshakers(const grpc_channel_args* args,
                        grpc_pollset_set* /*interested_parties*/,
                        grpc_core::HandshakeManager* handshake_mgr) override {
+    gpr_log(GPR_ERROR, "adding server sec con handshaker");
     handshake_mgr->Add(grpc_core::SecurityHandshakerCreate(
         tsi_create_fake_handshaker(/*=is_client*/ false), this, args));
   }
@@ -306,6 +307,7 @@ grpc_fake_channel_security_connector_create(
     grpc_core::RefCountedPtr<grpc_channel_credentials> channel_creds,
     grpc_core::RefCountedPtr<grpc_call_credentials> request_metadata_creds,
     const char* target, const grpc_channel_args* args) {
+  gpr_log(GPR_ERROR, "creating fake channel sec conn");
   return grpc_core::MakeRefCounted<grpc_fake_channel_security_connector>(
       std::move(channel_creds), std::move(request_metadata_creds), target,
       args);
@@ -314,6 +316,7 @@ grpc_fake_channel_security_connector_create(
 grpc_core::RefCountedPtr<grpc_server_security_connector>
 grpc_fake_server_security_connector_create(
     grpc_core::RefCountedPtr<grpc_server_credentials> server_creds) {
+  gpr_log(GPR_ERROR, "creating fake server sec conn");
   return grpc_core::MakeRefCounted<grpc_fake_server_security_connector>(
       std::move(server_creds));
 }

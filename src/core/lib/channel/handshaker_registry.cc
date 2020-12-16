@@ -64,6 +64,7 @@ void HandshakerFactoryList::Register(
 grpc_error* HandshakerFactoryList::AddHandshakers(
     const grpc_channel_args* args, grpc_pollset_set* interested_parties,
     HandshakeManager* handshake_mgr) {
+  gpr_log(GPR_ERROR, "add handshakers %d", factories_.size());
   for (size_t idx = 0; idx < factories_.size(); ++idx) {
     auto& handshaker_factory = factories_[idx];
     grpc_error* error = handshaker_factory->AddHandshakers(
@@ -101,6 +102,8 @@ void HandshakerRegistry::RegisterHandshakerFactory(
 grpc_error* HandshakerRegistry::AddHandshakers(
     HandshakerType handshaker_type, const grpc_channel_args* args,
     grpc_pollset_set* interested_parties, HandshakeManager* handshake_mgr) {
+  gpr_log(GPR_ERROR, "handshaker registry, add handshakers %d",
+          handshaker_type);
   GPR_ASSERT(g_handshaker_factory_lists != nullptr);
   auto& factory_list = g_handshaker_factory_lists[handshaker_type];
   return factory_list.AddHandshakers(args, interested_parties, handshake_mgr);

@@ -1616,11 +1616,11 @@ grpc_error* LdsResponseParseServer(
     const std::string& listener_name,
     const envoy_config_core_v3_Address* address) {
   // Get address from listener name
-  constexpr char kDelimiter[] = "?udpa.resource.listening_address=";
+  constexpr char kDelimiter[] = "?xds.resource.listening_address=";
   size_t pos = listener_name.find(kDelimiter);
   if (pos == std::string::npos) {
     return GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-        "name does not contain \"?udpa.resource.listening_address=\"");
+        "name does not contain \"?xds.resource.listening_address=\"");
   }
   size_t addr_start_pos = pos + strlen(kDelimiter);
   if (listener_name.length() < addr_start_pos) {

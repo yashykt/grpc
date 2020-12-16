@@ -537,6 +537,7 @@ Server::Server(const grpc_channel_args* args)
       channelz_node_(CreateChannelzNode(this, args)) {}
 
 Server::~Server() {
+  gpr_log(GPR_ERROR, "server being destroyed");
   grpc_channel_args_destroy(channel_args_);
   // Remove the cq pollsets from the config_fetcher.
   if (started_ && config_fetcher_ != nullptr &&

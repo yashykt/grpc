@@ -1837,11 +1837,13 @@ void XdsClient::CancelListenerDataWatch(absl::string_view listener_name,
                                         ListenerWatcherInterface* watcher,
                                         bool delay_unsubscription) {
   MutexLock lock(&mu_);
+  gpr_log(GPR_ERROR, "here %d", shutting_down_);
   if (shutting_down_) return;
   std::string listener_name_str = std::string(listener_name);
   ListenerState& listener_state = listener_map_[listener_name_str];
   auto it = listener_state.watchers.find(watcher);
   if (it != listener_state.watchers.end()) {
+    gpr_log(GPR_ERROR, "deleting watcher");
     listener_state.watchers.erase(it);
     if (listener_state.watchers.empty()) {
       listener_map_.erase(listener_name_str);

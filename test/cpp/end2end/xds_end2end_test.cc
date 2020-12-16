@@ -44,6 +44,7 @@
 #include <grpcpp/security/tls_certificate_provider.h>
 #include <grpcpp/server.h>
 #include <grpcpp/server_builder.h>
+#include <grpcpp/xds_server_builder.h>
 
 #include "src/core/ext/filters/client_channel/backup_poller.h"
 #include "src/core/ext/filters/client_channel/resolver/fake/fake_resolver.h"
@@ -1503,11 +1504,13 @@ std::shared_ptr<ChannelCredentials> CreateTlsFallbackCredentials() {
 class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
  protected:
   XdsEnd2endTest(size_t num_backends, size_t num_balancers,
-                 int client_load_reporting_interval_seconds = 100)
+                 int client_load_reporting_interval_seconds = 100,
+                 bool use_xds_enabled_server = false)
       : num_backends_(num_backends),
         num_balancers_(num_balancers),
         client_load_reporting_interval_seconds_(
-            client_load_reporting_interval_seconds) {}
+            client_load_reporting_interval_seconds),
+        use_xds_enabled_server_(use_xds_enabled_server) {}
 
   static void SetUpTestCase() {
     // Make the backup poller poll very frequently in order to pick up
@@ -1578,7 +1581,7 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
     }
     // Start the backends.
     for (size_t i = 0; i < num_backends_; ++i) {
-      backends_.emplace_back(new BackendServerThread);
+      backends_.emplace_back(new BackendServerThread(use_xds_enabled_server_));
       backends_.back()->Start();
     }
     // Start the load balancers.
@@ -1907,7 +1910,7 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
       context.set_deadline(
           grpc_timeout_milliseconds_to_deadline(rpc_options.timeout_ms));
     }
-    if (rpc_options.wait_for_ready) context.set_wait_for_ready(true);
+    context.set_wait_for_ready(true);
     request.set_message(kRequestMessage);
     if (rpc_options.server_fail) {
       request.mutable_param()->mutable_expected_error()->set_code(
@@ -2055,7 +2058,9 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
  protected:
   class ServerThread {
    public:
-    ServerThread() : port_(g_port_saver->GetPort()) {}
+    ServerThread(bool use_xds_enabled_server = false)
+        : port_(g_port_saver->GetPort()),
+          use_xds_enabled_server_(use_xds_enabled_server) {}
     virtual ~ServerThread(){};
 
     void Start() {
@@ -2080,10 +2085,17 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
       grpc_core::MutexLock lock(mu);
       std::ostringstream server_address;
       server_address << "localhost:" << port_;
-      ServerBuilder builder;
-      builder.AddListeningPort(server_address.str(), Credentials());
-      RegisterAllServices(&builder);
-      server_ = builder.BuildAndStart();
+      if (use_xds_enabled_server_) {
+        experimental::XdsServerBuilder builder;
+        builder.AddListeningPort(server_address.str(), Credentials());
+        RegisterAllServices(&builder);
+        server_ = builder.BuildAndStart();
+      } else {
+        ServerBuilder builder;
+        builder.AddListeningPort(server_address.str(), Credentials());
+        RegisterAllServices(&builder);
+        server_ = builder.BuildAndStart();
+      }
       cond->Signal();
     }
 
@@ -2115,10 +2127,14 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
     std::unique_ptr<Server> server_;
     std::unique_ptr<std::thread> thread_;
     bool running_ = false;
+    bool use_xds_enabled_server_;
   };
 
   class BackendServerThread : public ServerThread {
    public:
+    BackendServerThread(bool use_xds_enabled_server)
+        : ServerThread(use_xds_enabled_server) {}
+
     BackendServiceImpl<::grpc::testing::EchoTestService::Service>*
     backend_service() {
       return &backend_service_;
@@ -2258,6 +2274,7 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
   Listener default_listener_;
   RouteConfiguration default_route_config_;
   Cluster default_cluster_;
+  bool use_xds_enabled_server_;
 };
 
 class BasicTest : public XdsEnd2endTest {
@@ -5908,6 +5925,45 @@ TEST_P(XdsSecurityTest, TestFileWatcherCertificateProvider) {
                                           authenticated_identity_);
 }
 
+class XdsEnabledServerTest : public XdsEnd2endTest {
+ protected:
+  XdsEnabledServerTest()
+      : XdsEnd2endTest(1, 1, 100, true /* use_xds_enabled_server */) {}
+
+  void SetUp() override {
+    XdsEnd2endTest::SetUp();
+    AdsServiceImpl::EdsResourceArgs args({
+        {"locality0", GetBackendPorts(0, 1)},
+    });
+    balancers_[0]->ads_service()->SetEdsResource(
+        BuildEdsResource(args, DefaultEdsServiceName()));
+    SetNextResolution({});
+    SetNextResolutionForLbChannelAllBalancers();
+  }
+
+  void TearDown() override { XdsEnd2endTest::TearDown(); }
+};
+
+TEST_P(XdsEnabledServerTest, Basic) {
+  Listener listener;
+  listener.set_name(
+      absl::StrCat("grpc/server?xds.resource.listening_address=127.0.0.1:",
+                   backends_[0]->port()));
+  listener.mutable_address()->mutable_socket_address()->set_address(
+      "127.0.0.1");
+  listener.mutable_address()->mutable_socket_address()->set_port_value(
+      backends_[0]->port());
+  listener.add_filter_chains();
+  balancers_[0]->ads_service()->SetLdsResource(listener);
+  listener.set_name(
+      absl::StrCat("grpc/server?xds.resource.listening_address=[::1]:",
+                   backends_[0]->port()));
+  listener.mutable_address()->mutable_socket_address()->set_address("[::1]");
+  balancers_[0]->ads_service()->SetLdsResource(listener);
+  WaitForBackend(0);
+  CheckRpcSendOk();
+}
+
 using EdsTest = BasicTest;
 
 // Tests that EDS client should send a NACK if the EDS update contains
@@ -7237,6 +7293,12 @@ INSTANTIATE_TEST_SUITE_P(XdsTest, CdsTest,
 INSTANTIATE_TEST_SUITE_P(XdsTest, XdsSecurityTest,
                          ::testing::Values(TestType(true, false, false, false,
                                                     true)),
+                         &TestTypeName);
+
+// We are only testing the server here.
+INSTANTIATE_TEST_SUITE_P(XdsTest, XdsEnabledServerTest,
+                         ::testing::Values(TestType(true, false, false, false,
+                                                    false)),
                          &TestTypeName);
 
 // EDS could be tested with or without XdsResolver, but the tests would

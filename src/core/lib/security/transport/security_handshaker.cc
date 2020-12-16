@@ -532,16 +532,19 @@ class ServerSecurityHandshakerFactory : public HandshakerFactory {
                              HandshakeManager* handshake_mgr) override {
     // Add the security connector handshakers
     grpc_server_credentials* creds = grpc_find_server_credentials_in_args(args);
+    gpr_log(GPR_ERROR, "server creds %p", creds);
     if (creds != nullptr) {
       RefCountedPtr<grpc_server_security_connector> connector =
           creds->create_security_connector(args);
       if (connector == nullptr) {
+        gpr_log(GPR_ERROR, "error creating connector");
         return GRPC_ERROR_CREATE_FROM_COPIED_STRING(
             absl::StrCat(
                 "Unable to create security connector with credentials of type ",
                 creds->type())
                 .c_str());
       }
+      gpr_log(GPR_ERROR, "adding connector's handshakers");
       connector->add_handshakers(args, interested_parties, handshake_mgr);
     }
     return GRPC_ERROR_NONE;

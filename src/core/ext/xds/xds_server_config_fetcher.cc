@@ -46,10 +46,12 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
     auto listener_watcher = absl::make_unique<ListenerWatcher>(
         std::move(watcher), args, xds_client_);
     auto* listener_watcher_ptr = listener_watcher.get();
+    listening_address = absl::StrCat("grpc/server?xds.resource.listening_address=",
+                     listening_address);
     // TODO(yashykt): Get the resource name id from bootstrap
+    gpr_log(GPR_ERROR, "start watch on %s", listening_address.c_str());
     xds_client_->WatchListenerData(
-        absl::StrCat("grpc/server?xds.resource.listening_address=",
-                     listening_address),
+        listening_address,
         std::move(listener_watcher));
     MutexLock lock(&mu_);
     auto& watcher_state = watchers_[watcher_ptr];
@@ -67,6 +69,7 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
                                            it->second.listener_watcher,
                                            false /* delay_unsubscription */);
       watchers_.erase(it);
+      gpr_log(GPR_ERROR, "watch cancelled this");
     }
   }
 
@@ -86,7 +89,9 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
           args_(args),
           xds_client_(std::move(xds_client)) {}
 
-    ~ListenerWatcher() { grpc_channel_args_destroy(args_); }
+    ~ListenerWatcher() { 
+      gpr_log(GPR_ERROR, "listener watcher destroyed");
+      grpc_channel_args_destroy(args_); }
 
     // Deleted due to special handling required for args_. Copy the channel args
     // if we ever need these.
@@ -94,6 +99,7 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
     ListenerWatcher& operator=(const ListenerWatcher&) = delete;
 
     void OnListenerChanged(XdsApi::LdsUpdate listener) override {
+      gpr_log(GPR_ERROR, "listener changed");
       UpdateXdsCertificateProvider(listener);
       grpc_channel_args* updated_args = nullptr;
       if (xds_certificate_provider_ != nullptr) {
