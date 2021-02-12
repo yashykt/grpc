@@ -26,7 +26,16 @@ grep -PIirn \
     examples \
     include \
     src/abseil-cpp \
-    src/compiler \
+    src/android \
+    src/core \
+    src/cpp \
+    test | \
+    diff - /dev/null
+
+
+grep -PIirn '((\b|_)(ADHD|agnostic|blast[\ -]?radius|build\ cop|build\ sheriff|dead[\ -]?letter\ queue|dead[\ -]?letter|demilitarized\ zone\ (DMZ)|demilitarized\ zone|DMZ|derpy|dojo|fat|female\ adapter|field[\ -]?worker|first[\ -]?class|ghetto|grayed[\ -]?out|greyed[\ -]?out|gray[\ -]?out|grey[\ -]?out|gray[\ -]?list|grey[\ -]?list|gray[\ -]?listed|grey[\ -]?listed|gray[\ -]?listing|grey[\ -]?listing|gray[\ -]?hat|grey[\ -]?hat|guru|hit|house[\ -]?keeping|inscrutable|kebab|kebab[\ -]?case|kabob[\ -]?case|kabob|kill(?!\()|drink\ the\ Kool[\ -]?Aid|Kool\ Aid|life[\ -]?support|male\ adapter|manned|man[\ -]?kind|man[\ -]?made|mom\ test|girl[\ -]?friend\ test|grand[\ -]?ma\ test|grand[\ -]?mother\ test|ninja|OCD|off\ the\ reservation|open[\ -]?the[\ -]?kimono|pets[\ -]?versus[\ -]?cattle|preferred\ pronouns|RTFM|sane|sanity[\ -]?check|STONITH|STOMITH|terminate|tribal\ knowledge|tribal\ wisdom|voodoo|white[\ -]?glove|\bblast-radius\b|\bwhite-glove\b)(\b|_))' \
+    examples/cpp \
+    include \
     src/core \
     src/cpp \
     test | \
