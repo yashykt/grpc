@@ -1650,7 +1650,7 @@ grpc_error* CommonTlsContextParse(
 grpc_error* HttpConnectionManagerParse(
     bool is_client, const EncodingContext& context,
     const envoy_extensions_filters_network_http_connection_manager_v3_HttpConnectionManager*
-        http_connection_manager_proto, 
+        http_connection_manager_proto,
     XdsApi::LdsUpdate::HttpConnectionManager* http_connection_manager) {
   MaybeLogHttpConnectionManager(context, http_connection_manager_proto);
   if (XdsTimeoutEnabled()) {
@@ -1784,8 +1784,9 @@ grpc_error* LdsResponseParseClient(
     return GRPC_ERROR_CREATE_FROM_STATIC_STRING(
         "Could not parse HttpConnectionManager config from ApiListener");
   }
-  return HttpConnectionManagerParse(true /* is_client */, context, http_connection_manager,
-                                          &lds_update->http_connection_manager);
+  return HttpConnectionManagerParse(true /* is_client */, context,
+                                    http_connection_manager,
+                                    &lds_update->http_connection_manager);
 }
 
 XdsApi::LdsUpdate::FilterChain::FilterChainMatch::CidrRange CidrRangeParse(
@@ -1940,8 +1941,9 @@ grpc_error* FilterChainParse(
         "Could not parse HttpConnectionManager config from filter "
         "typed_config");
   }
-  error = HttpConnectionManagerParse(false /* is_client */,
-      context, http_connection_manager, &filter_chain->http_connection_manager);
+  error = HttpConnectionManagerParse(false /* is_client */, context,
+                                     http_connection_manager,
+                                     &filter_chain->http_connection_manager);
   if (error != GRPC_ERROR_NONE) return error;
   // Get the DownstreamTlsContext for the filter chain
   if (XdsSecurityEnabled()) {
