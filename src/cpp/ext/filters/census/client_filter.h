@@ -34,11 +34,6 @@ namespace grpc {
 // a call at a time.
 class CensusClientCallData : public CallData {
  public:
-  // Maximum size of trace context is sent on the wire.
-  static constexpr uint32_t kMaxTraceContextLen = 64;
-  // Maximum size of tags that are sent on the wire.
-  static constexpr uint32_t kMaxTagsLen = 2048;
-
   CensusClientCallData()
       : recv_trailing_metadata_(nullptr),
         initial_on_done_recv_trailing_metadata_(nullptr),
@@ -96,9 +91,6 @@ class CensusClientCallData : public CallData {
   // Number of messages in this RPC.
   uint64_t recv_message_count_;
   uint64_t sent_message_count_;
-  // Buffer needed for grpc_slice to reference when adding trace context
-  // metatdata to outgoing message.
-  char tracing_buf_[kMaxTraceContextLen];
 };
 
 }  // namespace grpc

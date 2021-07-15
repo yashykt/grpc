@@ -31,10 +31,11 @@ class OpenCensusCallTracer : public grpc_core::CallTracer {
   class OpenCensusCallAttemptTracer
       : public grpc_core::CallTracer::CallAttemptTracer {
    public:
+    OpenCensusCallAttemptTracer(OpenCensusCallTracer* parent)
+        : parent_(parent) {}
     ~OpenCensusCallAttemptTracer() override {}
-    void RecordSendInitialMetadata(
-        grpc_metadata_batch* send_initial_metadata,
-        uint32_t /* flags */) override;
+    void RecordSendInitialMetadata(grpc_metadata_batch* send_initial_metadata,
+                                   uint32_t /* flags */) override;
     void RecordOnDoneSendInitialMetadata(gpr_atm* /* peer_string */) override {}
     void RecordSendTrailingMetadata(
         grpc_metadata_batch* /* send_trailing_metadata */) override {}
@@ -49,11 +50,16 @@ class OpenCensusCallTracer : public grpc_core::CallTracer {
         grpc_metadata_batch* /* recv_trailing_metadata */) override;
     void RecordCancel(grpc_error_handle /* cancel_error */) override {}
     void RecordAnnotation(absl::string_view /* annotation */) override {}
-    void RecordEnd(const grpc_call_final_info& /* final_info */) override {}
+    void RecordEnd(const grpc_call_final_info& /* final_info */) override;
 
     CensusContext* context() { return &context_; }
 
    private:
+    // Maximum size of trace context is sent on the wire.
+    static constexpr uint32_t kMaxTraceContextLen = 64;
+    // Maximum size of tags that are sent on the wire.
+    static constexpr uint32_t kMaxTagsLen = 2048;
+    OpenCensusCallTracer* parent_;
     CensusContext context_;
     // Metadata elements for tracing and census stats data.
     grpc_linked_mdelem stats_bin_;
@@ -67,20 +73,23 @@ class OpenCensusCallTracer : public grpc_core::CallTracer {
     uint64_t sent_message_count_;
     // Buffer needed for grpc_slice to reference when adding trace context
     // metatdata to outgoing message.
-    char tracing_buf_[kMaxTraceContextLen];    
+    char tracing_buf_[kMaxTraceContextLen];
   };
 
+  // This should really just be the constructor, but the C++ filter API does not
+  // allow for it.
+  void Init(const grpc_call_element_args* args);
+
   OpenCensusCallAttemptTracer* RecordNewAttempt(
-      bool /* is_transparent_retry */) override {
-    return nullptr;
-  }
+      bool /* is_transparent_retry */) override;
   void RecordAnnotation(absl::string_view /* annotation */) override {}
 
-  CensusContext* context() { return &context_; }
-
  private:
-  CallAttemptTracer* parent_;
-  CensusContext context_;
+  // Client method.
+  absl::string_view method_;
+  std::string qualified_method_;
+  grpc_slice path_;
+  CensusContext* context_;
 };
 
 };  // namespace grpc
