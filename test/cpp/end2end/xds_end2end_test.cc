@@ -9534,8 +9534,9 @@ TEST_P(XdsServerSecurityTest, NacksMatchSubjectAltNames) {
   const auto response_state =
       balancers_[0]->ads_service()->lds_response_state();
   EXPECT_EQ(response_state.state, AdsServiceImpl::ResponseState::NACKED);
-  EXPECT_THAT(response_state.error_message,
-              ::testing::HasSubstr("match_subject_alt_names not supported on servers"));
+  EXPECT_THAT(
+      response_state.error_message,
+      ::testing::HasSubstr("match_subject_alt_names not supported on servers"));
 }
 
 TEST_P(XdsServerSecurityTest, UnknownIdentityCertificateProvider) {
