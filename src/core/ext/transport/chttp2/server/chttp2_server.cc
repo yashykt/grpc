@@ -748,17 +748,18 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
     }
     // TODO(yashykt): Maybe combine the following two arg modifiers into a
     // single one.
-    absl::StatusOr<grpc_channel_args*> args_result =
-        connection_manager->UpdateChannelArgsForConnection(args, tcp);
-    if (!args_result.ok()) {
+    absl::StatusOr<grpc_server_config_fetcher::ConnectionConfiguration>
+        connection_configuration =
+            connection_manager->UpdateChannelArgsForConnection(args, tcp);
+    if (!connection_configuration.ok()) {
       gpr_log(GPR_DEBUG, "Closing connection: %s",
-              args_result.status().ToString().c_str());
+              connection_configuration.status().ToString().c_str());
       endpoint_cleanup(GRPC_ERROR_CREATE_FROM_COPIED_STRING(
-          args_result.status().ToString().c_str()));
+          connection_configuration.status().ToString().c_str()));
       return;
     }
     grpc_error_handle error = GRPC_ERROR_NONE;
-    args = self->args_modifier_(*args_result, &error);
+    args = self->args_modifier_(connection_configuration->args, &error);
     if (error != GRPC_ERROR_NONE) {
       gpr_log(GPR_DEBUG, "Closing connection: %s",
               grpc_error_std_string(error).c_str());

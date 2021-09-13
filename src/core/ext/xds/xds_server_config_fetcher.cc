@@ -50,8 +50,9 @@ class FilterChainMatchManager
         filter_chain_map_(std::move(filter_chain_map)),
         default_filter_chain_(std::move(default_filter_chain)) {}
 
-  absl::StatusOr<grpc_channel_args*> UpdateChannelArgsForConnection(
-      grpc_channel_args* args, grpc_endpoint* tcp) override;
+  absl::StatusOr<grpc_server_config_fetcher::ConnectionConfiguration>
+  UpdateChannelArgsForConnection(grpc_channel_args* args,
+                                 grpc_endpoint* tcp) override;
 
   const XdsApi::LdsUpdate::FilterChainMap& filter_chain_map() const {
     return filter_chain_map_;
@@ -311,7 +312,7 @@ FilterChainMatchManager::CreateOrGetXdsCertificateProviderFromFilterChainData(
   return xds_certificate_provider;
 }
 
-absl::StatusOr<grpc_channel_args*>
+absl::StatusOr<grpc_server_config_fetcher::ConnectionConfiguration>
 FilterChainMatchManager::UpdateChannelArgsForConnection(grpc_channel_args* args,
                                                         grpc_endpoint* tcp) {
   const auto* filter_chain = FindFilterChainDataForDestinationIp(
@@ -327,7 +328,7 @@ FilterChainMatchManager::UpdateChannelArgsForConnection(grpc_channel_args* args,
   grpc_server_credentials* server_creds =
       grpc_find_server_credentials_in_args(args);
   if (server_creds == nullptr || server_creds->type() != kCredentialsTypeXds) {
-    return args;
+    return grpc_server_config_fetcher::ConnectionConfiguration{args, {}};
   }
   absl::StatusOr<RefCountedPtr<XdsCertificateProvider>> result =
       CreateOrGetXdsCertificateProviderFromFilterChainData(filter_chain);
@@ -342,7 +343,7 @@ FilterChainMatchManager::UpdateChannelArgsForConnection(grpc_channel_args* args,
   grpc_channel_args* updated_args =
       grpc_channel_args_copy_and_add(args, &arg_to_add, 1);
   grpc_channel_args_destroy(args);
-  return updated_args;
+  return grpc_server_config_fetcher::ConnectionConfiguration{updated_args, {}};
 }
 
 class XdsServerConfigFetcher : public grpc_server_config_fetcher {
