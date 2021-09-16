@@ -760,6 +760,7 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/lib/channel/handshaker_factory.h )
   s.files += %w( src/core/lib/channel/handshaker_registry.cc )
   s.files += %w( src/core/lib/channel/handshaker_registry.h )
+  s.files += %w( src/core/lib/channel/server_config_selector.h )
   s.files += %w( src/core/lib/channel/status_util.cc )
   s.files += %w( src/core/lib/channel/status_util.h )
   s.files += %w( src/core/lib/compression/algorithm_metadata.h )

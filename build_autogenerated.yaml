@@ -739,6 +739,7 @@ libs:
   - src/core/lib/channel/handshaker.h
   - src/core/lib/channel/handshaker_factory.h
   - src/core/lib/channel/handshaker_registry.h
+  - src/core/lib/channel/server_config_selector.h
   - src/core/lib/channel/status_util.h
   - src/core/lib/compression/algorithm_metadata.h
   - src/core/lib/compression/compression_args.h
@@ -1783,6 +1784,7 @@ libs:
   - src/core/lib/channel/handshaker.h
   - src/core/lib/channel/handshaker_factory.h
   - src/core/lib/channel/handshaker_registry.h
+  - src/core/lib/channel/server_config_selector.h
   - src/core/lib/channel/status_util.h
   - src/core/lib/compression/algorithm_metadata.h
   - src/core/lib/compression/compression_args.h
