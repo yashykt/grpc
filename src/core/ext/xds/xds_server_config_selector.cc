@@ -20,6 +20,8 @@
 
 #include "src/core/ext/xds/xds_server_config_selector.h"
 
+#include "src/core/lib/channel/server_config_selector.h"
+
 namespace grpc_core {
 namespace {
 
@@ -50,7 +52,20 @@ grpc_arg XdsServerConfigSelectorArg::MakeChannelArg() const {
       const_cast<XdsServerConfigSelectorArg*>(this), &kChannelArgVtable);
 }
 
+RefCountedPtr<XdsServerConfigSelectorArg> XdsServerConfigSelectorArg::GetFromChannelArgs(const grpc_channel_args& args) {
+   XdsServerConfigSelectorArg* config_selector_arg =
+      grpc_channel_args_find_pointer<XdsServerConfigSelectorArg>(&args,
+                                                     kChannelArgName);
+  return config_selector_arg != nullptr ? config_selector_arg->Ref() : nullptr;
+}
+
 namespace {
+
+class XdsServerConfigSelector : public ServerConfigSelector {
+  explicit XdsServerConfigSelector(XdsApi::RdsUpdate rds_update, grpc_error_handle* error) {
+
+  }
+};
 
 class ChannelData {
  public:
@@ -60,6 +75,8 @@ class ChannelData {
 
  private:
   ChannelData(grpc_channel_element* elem, grpc_channel_element_args* args);
+
+  RefCountedPtr<XdsServerConfigSelectorArg> config_selector_arg;
 };
 
 class CallData {
@@ -110,7 +127,9 @@ void ChannelData::Destroy(grpc_channel_element* elem) {
 }
 
 ChannelData::ChannelData(grpc_channel_element* elem,
-                         grpc_channel_element_args* args) {}
+                         grpc_channel_element_args* args) {
+  
+}
 
 // CallData
 

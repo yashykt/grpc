@@ -2061,6 +2061,7 @@ grpc_cc_library(
         "src/core/ext/xds/xds_server_config_fetcher.cc",
     ],
     hdrs = [
+        "src/core/ext/xds/xds_server_config_fetcher.h",
         "src/core/ext/xds/xds_server_config_selector.h",
     ],
     external_deps = [
