@@ -42,7 +42,7 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
           default_filter_chain_(std::move(default_filter_chain)),
           resource_names_(resource_names) {}
 
-     ~FilterChainMatchManager() override;
+    ~FilterChainMatchManager() override;
 
     absl::StatusOr<grpc_server_config_fetcher::ConnectionConfiguration>
     UpdateChannelArgsForConnection(grpc_channel_args* args,
@@ -147,7 +147,8 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
 
     void OnFatalError(absl::Status status);
 
-    void UpdateFilterChainMatchManagerLocked() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
+    void UpdateFilterChainMatchManagerLocked()
+        ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_);
 
     const std::unique_ptr<grpc_server_config_fetcher::WatcherInterface>
         server_config_watcher_;
@@ -174,9 +175,9 @@ class XdsServerConfigFetcher : public grpc_server_config_fetcher {
         : resource_name_(resource_name),
           server_config_fetcher_(server_config_fetcher) {}
 
-    void OnRouteConfigChanged(XdsApi::RdsUpdate route_config);
-    void OnError(grpc_error_handle error);
-    void OnResourceDoesNotExist();
+    void OnRouteConfigChanged(XdsApi::RdsUpdate route_config) override;
+    void OnError(grpc_error_handle error) override;
+    void OnResourceDoesNotExist() override;
 
    private:
     std::string resource_name_;

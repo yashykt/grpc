@@ -52,19 +52,19 @@ grpc_arg XdsServerConfigSelectorArg::MakeChannelArg() const {
       const_cast<XdsServerConfigSelectorArg*>(this), &kChannelArgVtable);
 }
 
-RefCountedPtr<XdsServerConfigSelectorArg> XdsServerConfigSelectorArg::GetFromChannelArgs(const grpc_channel_args& args) {
-   XdsServerConfigSelectorArg* config_selector_arg =
-      grpc_channel_args_find_pointer<XdsServerConfigSelectorArg>(&args,
-                                                     kChannelArgName);
+RefCountedPtr<XdsServerConfigSelectorArg>
+XdsServerConfigSelectorArg::GetFromChannelArgs(const grpc_channel_args& args) {
+  XdsServerConfigSelectorArg* config_selector_arg =
+      grpc_channel_args_find_pointer<XdsServerConfigSelectorArg>(
+          &args, kChannelArgName);
   return config_selector_arg != nullptr ? config_selector_arg->Ref() : nullptr;
 }
 
 namespace {
 
 class XdsServerConfigSelector : public ServerConfigSelector {
-  explicit XdsServerConfigSelector(XdsApi::RdsUpdate rds_update, grpc_error_handle* error) {
-
-  }
+  explicit XdsServerConfigSelector(XdsApi::RdsUpdate rds_update,
+                                   grpc_error_handle* error) {}
 };
 
 class ChannelData {
@@ -127,9 +127,7 @@ void ChannelData::Destroy(grpc_channel_element* elem) {
 }
 
 ChannelData::ChannelData(grpc_channel_element* elem,
-                         grpc_channel_element_args* args) {
-  
-}
+                         grpc_channel_element_args* args) {}
 
 // CallData
 

@@ -34,11 +34,12 @@ namespace grpc_core {
 struct XdsServerConfigSelectorArg
     : public RefCounted<XdsServerConfigSelectorArg> {
   grpc_arg MakeChannelArg() const;
-  RefCountedPtr<XdsServerConfigSelectorArg> GetFromChannelArgs(const grpc_channel_args& args);
+  RefCountedPtr<XdsServerConfigSelectorArg> GetFromChannelArgs(
+      const grpc_channel_args& args);
 
   static const char* kChannelArgName;
-  std::string resource_name;  // RDS resource name to watch
-  absl::optional<XdsApi::RdsUpdate> rds_update; // inline RDS update
+  std::string resource_name;                     // RDS resource name to watch
+  absl::optional<XdsApi::RdsUpdate> rds_update;  // inline RDS update
   const XdsServerConfigFetcher*
       server_config_fetcher;  // Owned by the server object
   std::vector<XdsApi::LdsUpdate::HttpConnectionManager::HttpFilter>

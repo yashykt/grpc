@@ -210,8 +210,9 @@ const XdsApi::LdsUpdate::FilterChainData* FindFilterChainDataForDestinationIp(
 // XdsServerConfigFetcher::FilterChainMatchManager
 
 XdsServerConfigFetcher::FilterChainMatchManager::~FilterChainMatchManager() {
-  for(const auto& resource_name: resource_names_) {
-      server_config_fetcher_->CancelRdsWatchInternal(resource_name, nullptr, /* dec_ref= */ true);
+  for (const auto& resource_name : resource_names_) {
+    server_config_fetcher_->CancelRdsWatchInternal(resource_name, nullptr,
+                                                   /* dec_ref= */ true);
   }
 }
 
@@ -318,8 +319,10 @@ XdsServerConfigFetcher::FilterChainMatchManager::UpdateChannelArgsForConnection(
     grpc_channel_args* old_args = args;
     auto server_config_selector_arg =
         MakeRefCounted<XdsServerConfigSelectorArg>();
-    server_config_selector_arg->resource_name = filter_chain->http_connection_manager.route_config_name;
-    server_config_selector_arg->rds_update = filter_chain->http_connection_manager.rds_update;
+    server_config_selector_arg->resource_name =
+        filter_chain->http_connection_manager.route_config_name;
+    server_config_selector_arg->rds_update =
+        filter_chain->http_connection_manager.rds_update;
     server_config_selector_arg->server_config_fetcher = server_config_fetcher_;
     server_config_selector_arg->http_filters =
         filter_chain->http_connection_manager.http_filters;
@@ -368,7 +371,8 @@ void XdsServerConfigFetcher::ListenerWatcher::RdsUpdateWatcher::OnRdsUpdate(
         break;
       }
     }
-    if(parent_->pending_rds_updates_.empty() && parent_->pending_filter_chain_match_manager_ != nullptr) {
+    if (parent_->pending_rds_updates_.empty() &&
+        parent_->pending_filter_chain_match_manager_ != nullptr) {
       parent_->UpdateFilterChainMatchManagerLocked();
     }
   }
@@ -504,7 +508,8 @@ void XdsServerConfigFetcher::ListenerWatcher::OnResourceDoesNotExist() {
   OnFatalError(absl::NotFoundError("Requested listener does not exist"));
 }
 
-void XdsServerConfigFetcher::ListenerWatcher::UpdateFilterChainMatchManagerLocked() {
+void XdsServerConfigFetcher::ListenerWatcher::
+    UpdateFilterChainMatchManagerLocked() {
   if (filter_chain_match_manager_ == nullptr) {
     if (serving_status_notifier_.on_serving_status_update != nullptr) {
       serving_status_notifier_.on_serving_status_update(
@@ -516,8 +521,8 @@ void XdsServerConfigFetcher::ListenerWatcher::UpdateFilterChainMatchManagerLocke
               listening_address_.c_str());
     }
   }
-    filter_chain_match_manager_ = std::move(pending_filter_chain_match_manager_);
-    server_config_watcher_->UpdateConnectionManager(filter_chain_match_manager_);
+  filter_chain_match_manager_ = std::move(pending_filter_chain_match_manager_);
+  server_config_watcher_->UpdateConnectionManager(filter_chain_match_manager_);
 }
 
 // XdsServerConfigFetcher::RouteConfigWatcher
