@@ -22,6 +22,7 @@
 
 #include "src/core/ext/xds/xds_certificate_provider.h"
 #include "src/core/ext/xds/xds_client.h"
+#include "src/core/ext/xds/xds_server_config_selector.h"
 #include "src/core/lib/address_utils/sockaddr_utils.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/gprpp/host_port.h"
@@ -43,10 +44,10 @@ class FilterChainMatchManager
     : public grpc_server_config_fetcher::ConnectionManager {
  public:
   FilterChainMatchManager(
-      RefCountedPtr<XdsClient> xds_client,
+      const XdsServerConfigFetcher* server_config_fetcher,
       XdsApi::LdsUpdate::FilterChainMap filter_chain_map,
       absl::optional<XdsApi::LdsUpdate::FilterChainData> default_filter_chain)
-      : xds_client_(xds_client),
+      : server_config_fetcher_(server_config_fetcher),
         filter_chain_map_(std::move(filter_chain_map)),
         default_filter_chain_(std::move(default_filter_chain)) {}
 
@@ -77,7 +78,7 @@ class FilterChainMatchManager
   CreateOrGetXdsCertificateProviderFromFilterChainData(
       const XdsApi::LdsUpdate::FilterChainData* filter_chain);
 
-  const RefCountedPtr<XdsClient> xds_client_;
+  const XdsServerConfigFetcher* server_config_fetcher_;
   const XdsApi::LdsUpdate::FilterChainMap filter_chain_map_;
   const absl::optional<XdsApi::LdsUpdate::FilterChainData>
       default_filter_chain_;
@@ -268,7 +269,7 @@ FilterChainMatchManager::CreateOrGetXdsCertificateProviderFromFilterChainData(
           .certificate_name;
   if (!root_provider_instance_name.empty()) {
     certificate_providers.root =
-        xds_client_->certificate_provider_store()
+        server_config_fetcher_->xds_client_->certificate_provider_store()
             .CreateOrGetCertificateProvider(root_provider_instance_name);
     if (certificate_providers.root == nullptr) {
       return absl::NotFoundError(
@@ -285,7 +286,7 @@ FilterChainMatchManager::CreateOrGetXdsCertificateProviderFromFilterChainData(
           .tls_certificate_provider_instance.certificate_name;
   if (!identity_provider_instance_name.empty()) {
     certificate_providers.instance =
-        xds_client_->certificate_provider_store()
+        server_config_fetcher_->xds_client_->certificate_provider_store()
             .CreateOrGetCertificateProvider(identity_provider_instance_name);
     if (certificate_providers.instance == nullptr) {
       return absl::NotFoundError(
@@ -324,11 +325,47 @@ FilterChainMatchManager::UpdateChannelArgsForConnection(grpc_channel_args* args,
     grpc_channel_args_destroy(args);
     return absl::UnavailableError("No matching filter chain found");
   }
+  std::vector<const grpc_channel_filter*> filters;
+  // Iterate the list of HTTP filters in reverse since in Core, received data
+  // flows *up* the stack.
+  for (auto reverse_iterator =
+           filter_chain->http_connection_manager.http_filters.rbegin();
+       reverse_iterator !=
+       filter_chain->http_connection_manager.http_filters.rend();
+       ++reverse_iterator) {
+    // Find filter.  This is guaranteed to succeed, because it's checked
+    // at config validation time in the XdsApi code.
+    const XdsHttpFilterImpl* filter_impl =
+        XdsHttpFilterRegistry::GetFilterForType(
+            reverse_iterator->config.config_proto_type_name);
+    GPR_ASSERT(filter_impl != nullptr);
+    // Some filters like the router filter are no-op filters and do not have an
+    // implementation.
+    if (filter_impl->channel_filter() != nullptr) {
+      filters.push_back(filter_impl->channel_filter());
+    }
+  }
+  // Add config selector filter
+  if (!filters.empty()) {
+    filters.push_back(&kXdsServerConfigSelectorFilter);
+    grpc_channel_args* old_args = args;
+    auto server_config_selector_arg =
+        MakeRefCounted<XdsServerConfigSelectorArg>();
+    server_config_selector_arg->resource_name = "fake_name";
+    server_config_selector_arg->grpc_server_config_fetcher =
+        server_config_fetcher_;
+    server_config_selector_arg->http_filters =
+        filter_chain->http_connection_manager.http_filters;
+    grpc_arg arg_to_add = server_config_selector_arg->MakeChannelArg();
+    args = grpc_channel_args_copy_and_add(old_args, &arg_to_add, 1);
+    grpc_channel_args_destroy(old_args);
+  }
   // Nothing to update if credentials are not xDS.
   grpc_server_credentials* server_creds =
       grpc_find_server_credentials_in_args(args);
   if (server_creds == nullptr || server_creds->type() != kCredentialsTypeXds) {
-    return grpc_server_config_fetcher::ConnectionConfiguration{args, {}};
+    return grpc_server_config_fetcher::ConnectionConfiguration{
+        args, std::move(filters)};
   }
   absl::StatusOr<RefCountedPtr<XdsCertificateProvider>> result =
       CreateOrGetXdsCertificateProviderFromFilterChainData(filter_chain);
@@ -343,7 +380,8 @@ FilterChainMatchManager::UpdateChannelArgsForConnection(grpc_channel_args* args,
   grpc_channel_args* updated_args =
       grpc_channel_args_copy_and_add(args, &arg_to_add, 1);
   grpc_channel_args_destroy(args);
-  return grpc_server_config_fetcher::ConnectionConfiguration{updated_args, {}};
+  return grpc_server_config_fetcher::ConnectionConfiguration{
+      updated_args, std::move(filters)};
 }
 
 class XdsServerConfigFetcher : public grpc_server_config_fetcher {
