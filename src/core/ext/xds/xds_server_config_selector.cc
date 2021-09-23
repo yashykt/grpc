@@ -104,7 +104,7 @@ class ChannelData {
   class RdsUpdateWatcher
       : public XdsServerConfigFetcher::RdsUpdateWatcherInterface {
    public:
-    RdsUpdateWatcher(ChannelData* chand) : chand_(chand) {}
+    explicit RdsUpdateWatcher(ChannelData* chand) : chand_(chand) {}
     void OnRdsUpdate(absl::StatusOr<XdsApi::RdsUpdate> rds_update) override;
 
    private:
@@ -128,8 +128,8 @@ class CallData {
   static void Destroy(grpc_call_element* elem,
                       const grpc_call_final_info* /* final_info */,
                       grpc_closure* /* then_schedule_closure */);
-  static void StartTransportStreamOpBatch(
-      grpc_call_element* elem, grpc_transport_stream_op_batch* batch);
+  static void StartTransportStreamOpBatch(grpc_call_element* elem,
+                                          grpc_transport_stream_op_batch* op);
 
  private:
   CallData(grpc_call_element* elem, const grpc_call_element_args& args);
@@ -211,6 +211,7 @@ absl::StatusOr<XdsServerConfigSelector> XdsServerConfigSelector::Create(
             .push_back(method_config_field->element);
       }
       grpc_channel_args_destroy(args);
+      fields.reserve(per_filter_configs.size());
       for (const auto& p : per_filter_configs) {
         fields.emplace_back(absl::StrCat("    \"", p.first, "\": [\n",
                                          absl::StrJoin(p.second, ",\n"),
