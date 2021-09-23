@@ -19,8 +19,8 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/lib/transport/metadata_batch.h"
 #include "src/core/lib/channel/service_config.h"
+#include "src/core/lib/transport/metadata_batch.h"
 
 namespace grpc_core {
 

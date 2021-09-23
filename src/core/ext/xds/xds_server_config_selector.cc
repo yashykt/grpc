@@ -69,7 +69,7 @@ namespace {
 
 class XdsServerConfigSelector : public ServerConfigSelector {
  public:
-  virtual ~XdsServerConfigSelector() = default;
+  ~XdsServerConfigSelector() override = default;
   static absl::StatusOr<XdsServerConfigSelector> Create(
       absl::StatusOr<XdsApi::RdsUpdate> rds_update,
       const std::vector<XdsApi::LdsUpdate::HttpConnectionManager::HttpFilter>&
