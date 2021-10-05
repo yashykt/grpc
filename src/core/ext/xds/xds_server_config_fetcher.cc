@@ -273,9 +273,10 @@ class XdsServerConfigSelectorProvider : public ServerConfigSelectorProvider {
   absl::StatusOr<RefCountedPtr<ServerConfigSelector>> Watch(
       std::unique_ptr<ServerConfigSelectorProvider::ServerConfigSelectorWatcher>
           watcher) override {
-    if (static_resource_.has_value())
+    if (static_resource_.has_value()) {
       return XdsServerConfigSelector::Create(static_resource_.value(),
                                              http_filters_);
+    }
     GPR_ASSERT(!resource_name_.empty());
     MutexLock lock(&mu_);
     GPR_ASSERT(watcher_ == nullptr);
@@ -303,7 +304,7 @@ class XdsServerConfigSelectorProvider : public ServerConfigSelectorProvider {
    public:
     explicit RdsUpdateWatcher(XdsServerConfigSelectorProvider* parent)
         : parent_(parent) {}
-    void OnRdsUpdate(absl::StatusOr<XdsApi::RdsUpdate> rds_update) {
+    void OnRdsUpdate(absl::StatusOr<XdsApi::RdsUpdate> rds_update) override {
       MutexLock lock(&parent_->mu_);
       GPR_ASSERT(parent_->watcher_ != nullptr);
       parent_->watcher_->OnServerConfigSelectorUpdate(
