@@ -305,7 +305,7 @@ class XdsServerConfigSelectorProvider : public ServerConfigSelectorProvider {
    public:
     explicit RdsUpdateWatcher(XdsServerConfigSelectorProvider* parent)
         : parent_(parent) {}
-    void OnRdsUpdate(absl::StatusOr<XdsApi::RdsUpdate> rds_update) {
+    void OnRdsUpdate(absl::StatusOr<XdsApi::RdsUpdate> rds_update) override {
       MutexLock lock(&parent_->mu_);
       GPR_ASSERT(parent_->watcher_ != nullptr);
       parent_->watcher_->OnServerConfigSelectorUpdate(
