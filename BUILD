@@ -988,7 +988,7 @@ grpc_cc_library(
         "grpc_base",
         "grpc_trace",
     ],
-)        
+)
 
 grpc_cc_library(
     name = "memory_quota",
