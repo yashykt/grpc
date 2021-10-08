@@ -282,7 +282,7 @@ grpc_channel* grpc_channel_create(
       if (strcmp("server", filter_name_at_it) == 0) {
         position_to_insert = it;
       }
-      if (strcmp("census_server", filter_name_at_it) ||
+      if (strcmp("census_server", filter_name_at_it) != 0 ||
           strcmp("opencensus_server", filter_name_at_it)) {
         position_to_insert = it;
         break;

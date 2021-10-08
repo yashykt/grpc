@@ -1326,7 +1326,7 @@ grpc_cc_library(
         "grpc_trace",
         "json",
     ],
-)        
+)
 
 grpc_cc_library(
     name = "event_engine_memory_allocator",
