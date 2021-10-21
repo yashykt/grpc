@@ -3142,6 +3142,14 @@ targets:
   - test/core/surface/channel_create_test.cc
   deps:
   - grpc_test_util
+- name: channel_stack_builder_test
+  build: test
+  language: c
+  headers: []
+  src:
+  - test/core/channel/channel_stack_builder_test.cc
+  deps:
+  - grpc_test_util
 - name: channel_stack_test
   build: test
   language: c
@@ -4896,15 +4904,6 @@ targets:
   - grpc++
   - grpc_test_util
   uses_polling: false
-- name: channel_stack_builder_test
-  gtest: true
-  build: test
-  language: c++
-  headers: []
-  src:
-  - test/core/channel/channel_stack_builder_test.cc
-  deps:
-  - grpc_test_util
 - name: channel_trace_test
   gtest: true
   build: test
