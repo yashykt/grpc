@@ -738,7 +738,6 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/ext/xds/xds_http_filters.cc )
   s.files += %w( src/core/ext/xds/xds_http_filters.h )
   s.files += %w( src/core/ext/xds/xds_server_config_fetcher.cc )
-  s.files += %w( src/core/ext/xds/xds_server_config_fetcher.h )
   s.files += %w( src/core/lib/address_utils/parse_address.cc )
   s.files += %w( src/core/lib/address_utils/parse_address.h )
   s.files += %w( src/core/lib/address_utils/sockaddr_utils.cc )
