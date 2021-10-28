@@ -487,7 +487,7 @@ struct grpc_server_config_fetcher
     virtual void StopServing() = 0;
   };
 
-  virtual ~grpc_server_config_fetcher() = default;
+  ~grpc_server_config_fetcher() override = default;
 
   virtual void StartWatch(std::string listening_address,
                           std::unique_ptr<WatcherInterface> watcher) = 0;
