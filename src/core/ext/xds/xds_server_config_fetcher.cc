@@ -460,7 +460,7 @@ class XdsServerConfigSelectorProvider : public ServerConfigSelectorProvider {
    public:
     explicit RdsUpdateWatcher(XdsServerConfigSelectorProvider* parent)
         : parent_(parent) {}
-    bool OnRdsUpdate(absl::StatusOr<XdsApi::RdsUpdate> rds_update) {
+    bool OnRdsUpdate(absl::StatusOr<XdsApi::RdsUpdate> rds_update) override {
       MutexLock lock(&parent_->mu_);
       if (parent_->watcher_ != nullptr) {
         if (!rds_update.ok()) {
@@ -485,7 +485,7 @@ class XdsServerConfigSelectorProvider : public ServerConfigSelectorProvider {
       : resource_(std::move(static_resource)),
         http_filters_(std::move(http_filters)) {}
 
-  XdsServerConfigSelectorProvider(
+  explicit XdsServerConfigSelectorProvider(
       std::vector<XdsApi::LdsUpdate::HttpConnectionManager::HttpFilter>
           http_filters)
       : http_filters_(std::move(http_filters)) {}
