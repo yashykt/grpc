@@ -5774,6 +5774,21 @@ targets:
   - absl/types:variant
   - gpr
   uses_polling: false
+- name: exec_ctx_work_serializer_test
+  gtest: true
+  build: test
+  language: c++
+  headers:
+  - src/core/lib/iomgr/exec_ctx_work_serializer.h
+  src:
+  - src/core/lib/iomgr/exec_ctx_work_serializer.cc
+  - test/core/iomgr/exec_ctx_work_serializer_test.cc
+  deps:
+  - grpc_test_util
+  platforms:
+  - linux
+  - posix
+  - mac
 - name: fake_binder_test
   gtest: true
   build: test
