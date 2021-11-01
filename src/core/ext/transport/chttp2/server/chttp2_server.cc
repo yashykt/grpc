@@ -251,6 +251,23 @@ void Chttp2ServerListener::ConfigFetcherWatcher::UpdateConnectionManager(
         connection_manager) {
   RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
       connection_manager_to_destroy;
+  class GracefulShutdownExistingConnections {
+  public:
+    ~GracefulShutdownExistingConnections() {
+      // Send GOAWAYs on the transports so that they get disconnected when existing RPCs
+      // finish, and so that no new RPC is started on them.
+      for (auto& connection : connections_) {
+        connection.first->SendGoAway();
+      }  
+    }
+
+    void set_connections(std::map<ActiveConnection*, OrphanablePtr<ActiveConnection>> connections) {
+      GPR_ASSERT(connections_.empty());
+      connections_ = std::move(connections);
+    }
+  private:
+    std::map<ActiveConnection*, OrphanablePtr<ActiveConnection>> connections_;
+  } connections_to_shutdown;      
   {
     MutexLock lock(&listener_->connection_manager_mu_);
     connection_manager_to_destroy = listener_->connection_manager_;
@@ -258,6 +275,7 @@ void Chttp2ServerListener::ConfigFetcherWatcher::UpdateConnectionManager(
   }
   {
     MutexLock lock(&listener_->mu_);
+    connections_to_shutdown.set_connections(std::move(listener_->connections_));
     if (listener_->shutdown_) {
       return;
     }
