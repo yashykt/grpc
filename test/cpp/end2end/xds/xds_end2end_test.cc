@@ -816,7 +816,7 @@ class XdsEnd2endTest : public ::testing::TestWithParam<TestType> {
     ResetStub();
   }
 
-  ~XdsEnd2endTest() {
+  ~XdsEnd2endTest() override {
     ShutdownAllBackends();
     for (auto& balancer : balancers_) balancer->Shutdown();
     // Clear global xDS channel args, since they will go out of scope
