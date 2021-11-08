@@ -371,7 +371,7 @@ bool XdsResolver::XdsConfigSelector::Route::operator==(
 class XdsResolver::XdsConfigSelector::RouteListIterator
     : public XdsRouting::RouteListIterator {
  public:
-  RouteListIterator(const RouteTable& route_table)
+  explicit RouteListIterator(const RouteTable& route_table)
       : route_table_(route_table) {}
 
   size_t Size() const override { return route_table_.size(); }
@@ -828,7 +828,7 @@ namespace {
 // TODO(): Should this be moved to xds_api.h?
 class VirtualHostListIterator : public XdsRouting::VirtualHostListIterator {
  public:
-  VirtualHostListIterator(
+  explicit VirtualHostListIterator(
       const std::vector<XdsApi::RdsUpdate::VirtualHost>& virtual_hosts)
       : virtual_hosts_(virtual_hosts) {}
 

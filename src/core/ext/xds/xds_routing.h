@@ -79,11 +79,17 @@ class XdsRouting {
   struct GeneratePerHttpFilterConfigsResult {
     std::map<std::string, std::vector<std::string>> per_filter_configs;
     grpc_error_handle error;
-    grpc_channel_args* args; // Guaranteed to be nullptr if error is GRPC_ERROR_NONE
+    grpc_channel_args*
+        args;  // Guaranteed to be nullptr if error is GRPC_ERROR_NONE
   };
-  // Generates a map of per_filter_configs that goes from the field name to the list of elements for that field
-  static GeneratePerHttpFilterConfigsResult GeneratePerHTTPFilterConfigs(const std::vector<XdsApi::LdsUpdate::HttpConnectionManager::HttpFilter> &filters, grpc_channel_args* args, const XdsApi::RdsUpdate::VirtualHost& vhost, const XdsApi::Route& route,
-    const XdsApi::Route::RouteAction::ClusterWeight* cluster_weight);
+  // Generates a map of per_filter_configs that goes from the field name to the
+  // list of elements for that field
+  static GeneratePerHttpFilterConfigsResult GeneratePerHTTPFilterConfigs(
+      const std::vector<XdsApi::LdsUpdate::HttpConnectionManager::HttpFilter>&
+          filters,
+      grpc_channel_args* args, const XdsApi::RdsUpdate::VirtualHost& vhost,
+      const XdsApi::Route& route,
+      const XdsApi::Route::RouteAction::ClusterWeight* cluster_weight);
 };
 
 }  // namespace grpc_core
