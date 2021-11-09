@@ -181,7 +181,7 @@ class XdsClusterResolverLb : public LoadBalancingPolicy {
         discovery_mechanism->parent()->work_serializer()->Run(
             [discovery_mechanism, update]() {
               discovery_mechanism->parent()->OnEndpointChanged(
-                  discovery_mechanism->index(), std::move(update));
+                  discovery_mechanism->index(), update);
             },
             DEBUG_LOCATION);
       }
