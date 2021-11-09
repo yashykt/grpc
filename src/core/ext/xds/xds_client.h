@@ -46,7 +46,7 @@ class XdsClient : public DualRefCounted<XdsClient> {
   // Listener data watcher interface.  Implemented by callers.
   class ListenerWatcherInterface : public RefCounted<ListenerWatcherInterface> {
    public:
-    virtual ~ListenerWatcherInterface() = default;
+    ~ListenerWatcherInterface() override = default;
     virtual void OnListenerChanged(XdsApi::LdsUpdate listener) = 0;
     virtual void OnError(grpc_error_handle error) = 0;
     virtual void OnResourceDoesNotExist() = 0;

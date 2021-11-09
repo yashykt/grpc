@@ -270,7 +270,8 @@ class XdsServerConfigSelector : public ServerConfigSelector {
 class XdsServerConfigSelector::VirtualHostListIterator
     : public XdsRouting::VirtualHostListIterator {
  public:
-  VirtualHostListIterator(const std::vector<VirtualHost>& virtual_hosts)
+  explicit VirtualHostListIterator(
+      const std::vector<VirtualHost>& virtual_hosts)
       : virtual_hosts_(virtual_hosts) {}
 
   size_t Size() const override { return virtual_hosts_.size(); }
@@ -287,7 +288,8 @@ class XdsServerConfigSelector::VirtualHostListIterator
 class XdsServerConfigSelector::VirtualHost::RouteListIterator
     : public XdsRouting::RouteListIterator {
  public:
-  RouteListIterator(const std::vector<Route>& routes) : routes_(routes) {}
+  explicit RouteListIterator(const std::vector<Route>& routes)
+      : routes_(routes) {}
 
   size_t Size() const override { return routes_.size(); }
 
