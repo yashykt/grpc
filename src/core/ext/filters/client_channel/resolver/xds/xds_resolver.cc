@@ -901,7 +901,7 @@ void XdsResolver::NotifyLdsUpdate(XdsApi::LdsUpdate update) {
         if (resolver->xds_client_ == nullptr) {
           return;
         }
-        resolver->OnListenerUpdate(std::move(update));
+        resolver->OnListenerUpdate(update);
       },
       DEBUG_LOCATION);
 }
@@ -913,7 +913,7 @@ void XdsResolver::NotifyRdsUpdate(XdsApi::RdsUpdate update) {
         if (resolver->xds_client_ == nullptr) {
           return;
         }
-        resolver->OnRouteConfigUpdate(std::move(update));
+        resolver->OnRouteConfigUpdate(update);
       },
       DEBUG_LOCATION);
 }
