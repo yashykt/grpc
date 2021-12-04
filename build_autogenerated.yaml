@@ -132,10 +132,7 @@ libs:
   language: c
   public_headers: []
   headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
   - src/core/lib/security/authorization/rbac_translator.h
   - test/core/end2end/cq_verifier.h
   - test/core/end2end/data/ssl_test_data.h
@@ -146,10 +143,7 @@ libs:
   - test/core/end2end/tests/cancel_test_helpers.h
   - test/core/util/test_lb_policies.h
   src:
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - src/core/lib/security/authorization/rbac_translator.cc
   - test/core/end2end/cq_verifier.cc
   - test/core/end2end/data/client_certs.cc
@@ -475,6 +469,7 @@ libs:
   - src/core/ext/filters/max_age/max_age_filter.h
   - src/core/ext/filters/message_size/message_size_filter.h
   - src/core/ext/filters/rbac/rbac_filter.h
+  - src/core/ext/filters/rbac/rbac_service_config_parser.h
   - src/core/ext/filters/server_config_selector/server_config_selector.h
   - src/core/ext/filters/server_config_selector/server_config_selector_filter.h
   - src/core/ext/service_config/service_config.h
@@ -551,6 +546,7 @@ libs:
   - src/core/ext/upb-generated/envoy/extensions/clusters/aggregate/v3/cluster.upb.h
   - src/core/ext/upb-generated/envoy/extensions/filters/common/fault/v3/fault.upb.h
   - src/core/ext/upb-generated/envoy/extensions/filters/http/fault/v3/fault.upb.h
+  - src/core/ext/upb-generated/envoy/extensions/filters/http/rbac/v3/rbac.upb.h
   - src/core/ext/upb-generated/envoy/extensions/filters/http/router/v3/router.upb.h
   - src/core/ext/upb-generated/envoy/extensions/filters/network/http_connection_manager/v3/http_connection_manager.upb.h
   - src/core/ext/upb-generated/envoy/extensions/transport_sockets/tls/v3/cert.upb.h
@@ -658,6 +654,7 @@ libs:
   - src/core/ext/upbdefs-generated/envoy/extensions/clusters/aggregate/v3/cluster.upbdefs.h
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/common/fault/v3/fault.upbdefs.h
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/http/fault/v3/fault.upbdefs.h
+  - src/core/ext/upbdefs-generated/envoy/extensions/filters/http/rbac/v3/rbac.upbdefs.h
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/http/router/v3/router.upbdefs.h
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/network/http_connection_manager/v3/http_connection_manager.upbdefs.h
   - src/core/ext/upbdefs-generated/envoy/extensions/transport_sockets/tls/v3/cert.upbdefs.h
@@ -870,6 +867,9 @@ libs:
   - src/core/lib/security/authorization/authorization_engine.h
   - src/core/lib/security/authorization/authorization_policy_provider.h
   - src/core/lib/security/authorization/evaluate_args.h
+  - src/core/lib/security/authorization/grpc_authorization_engine.h
+  - src/core/lib/security/authorization/matchers.h
+  - src/core/lib/security/authorization/rbac_policy.h
   - src/core/lib/security/authorization/sdk_server_authz_filter.h
   - src/core/lib/security/context/security_context.h
   - src/core/lib/security/credentials/alts/alts_credentials.h
@@ -1059,6 +1059,7 @@ libs:
   - src/core/ext/filters/max_age/max_age_filter.cc
   - src/core/ext/filters/message_size/message_size_filter.cc
   - src/core/ext/filters/rbac/rbac_filter.cc
+  - src/core/ext/filters/rbac/rbac_service_config_parser.cc
   - src/core/ext/filters/server_config_selector/server_config_selector.cc
   - src/core/ext/filters/server_config_selector/server_config_selector_filter.cc
   - src/core/ext/service_config/service_config.cc
@@ -1140,6 +1141,7 @@ libs:
   - src/core/ext/upb-generated/envoy/extensions/clusters/aggregate/v3/cluster.upb.c
   - src/core/ext/upb-generated/envoy/extensions/filters/common/fault/v3/fault.upb.c
   - src/core/ext/upb-generated/envoy/extensions/filters/http/fault/v3/fault.upb.c
+  - src/core/ext/upb-generated/envoy/extensions/filters/http/rbac/v3/rbac.upb.c
   - src/core/ext/upb-generated/envoy/extensions/filters/http/router/v3/router.upb.c
   - src/core/ext/upb-generated/envoy/extensions/filters/network/http_connection_manager/v3/http_connection_manager.upb.c
   - src/core/ext/upb-generated/envoy/extensions/transport_sockets/tls/v3/cert.upb.c
@@ -1247,6 +1249,7 @@ libs:
   - src/core/ext/upbdefs-generated/envoy/extensions/clusters/aggregate/v3/cluster.upbdefs.c
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/common/fault/v3/fault.upbdefs.c
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/http/fault/v3/fault.upbdefs.c
+  - src/core/ext/upbdefs-generated/envoy/extensions/filters/http/rbac/v3/rbac.upbdefs.c
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/http/router/v3/router.upbdefs.c
   - src/core/ext/upbdefs-generated/envoy/extensions/filters/network/http_connection_manager/v3/http_connection_manager.upbdefs.c
   - src/core/ext/upbdefs-generated/envoy/extensions/transport_sockets/tls/v3/cert.upbdefs.c
@@ -1455,6 +1458,9 @@ libs:
   - src/core/lib/resource_quota/trace.cc
   - src/core/lib/security/authorization/authorization_policy_provider_vtable.cc
   - src/core/lib/security/authorization/evaluate_args.cc
+  - src/core/lib/security/authorization/grpc_authorization_engine.cc
+  - src/core/lib/security/authorization/matchers.cc
+  - src/core/lib/security/authorization/rbac_policy.cc
   - src/core/lib/security/authorization/sdk_server_authz_filter.cc
   - src/core/lib/security/context/security_context.cc
   - src/core/lib/security/credentials/alts/alts_credentials.cc
@@ -1730,6 +1736,7 @@ libs:
   - include/grpc/fork.h
   - include/grpc/grpc.h
   - include/grpc/grpc_posix.h
+  - include/grpc/grpc_security.h
   - include/grpc/grpc_security_constants.h
   - include/grpc/load_reporting.h
   - include/grpc/slice.h
@@ -1760,6 +1767,7 @@ libs:
   - src/core/ext/filters/client_channel/lb_policy/grpclb/load_balancer_api.h
   - src/core/ext/filters/client_channel/lb_policy/ring_hash/ring_hash.h
   - src/core/ext/filters/client_channel/lb_policy/subchannel_list.h
+  - src/core/ext/filters/client_channel/lb_policy/xds/xds_channel_args.h
   - src/core/ext/filters/client_channel/lb_policy_factory.h
   - src/core/ext/filters/client_channel/lb_policy_registry.h
   - src/core/ext/filters/client_channel/local_subchannel_pool.h
@@ -1792,6 +1800,7 @@ libs:
   - src/core/ext/filters/max_age/max_age_filter.h
   - src/core/ext/filters/message_size/message_size_filter.h
   - src/core/ext/filters/rbac/rbac_filter.h
+  - src/core/ext/filters/rbac/rbac_service_config_parser.h
   - src/core/ext/service_config/service_config.h
   - src/core/ext/service_config/service_config_call_data.h
   - src/core/ext/service_config/service_config_parser.h
@@ -1826,10 +1835,14 @@ libs:
   - src/core/ext/transport/inproc/inproc_transport.h
   - src/core/ext/upb-generated/google/protobuf/duration.upb.h
   - src/core/ext/upb-generated/google/protobuf/timestamp.upb.h
+  - src/core/ext/upb-generated/src/proto/grpc/gcp/altscontext.upb.h
+  - src/core/ext/upb-generated/src/proto/grpc/gcp/handshaker.upb.h
+  - src/core/ext/upb-generated/src/proto/grpc/gcp/transport_security_common.upb.h
   - src/core/ext/upb-generated/src/proto/grpc/health/v1/health.upb.h
   - src/core/ext/upb-generated/src/proto/grpc/lb/v1/load_balancer.upb.h
   - src/core/ext/upb-generated/validate/validate.upb.h
   - src/core/ext/upb-generated/xds/data/orca/v3/orca_load_report.upb.h
+  - src/core/ext/xds/xds_channel_args.h
   - src/core/lib/address_utils/parse_address.h
   - src/core/lib/address_utils/sockaddr_utils.h
   - src/core/lib/avl/avl.h
@@ -1951,6 +1964,7 @@ libs:
   - src/core/lib/iomgr/work_serializer.h
   - src/core/lib/json/json.h
   - src/core/lib/json/json_util.h
+  - src/core/lib/matchers/matchers.h
   - src/core/lib/promise/activity.h
   - src/core/lib/promise/context.h
   - src/core/lib/promise/detail/basic_seq.h
@@ -1969,6 +1983,56 @@ libs:
   - src/core/lib/resource_quota/resource_quota.h
   - src/core/lib/resource_quota/thread_quota.h
   - src/core/lib/resource_quota/trace.h
+  - src/core/lib/security/authorization/authorization_engine.h
+  - src/core/lib/security/authorization/authorization_policy_provider.h
+  - src/core/lib/security/authorization/evaluate_args.h
+  - src/core/lib/security/authorization/grpc_authorization_engine.h
+  - src/core/lib/security/authorization/matchers.h
+  - src/core/lib/security/authorization/rbac_policy.h
+  - src/core/lib/security/authorization/sdk_server_authz_filter.h
+  - src/core/lib/security/context/security_context.h
+  - src/core/lib/security/credentials/alts/alts_credentials.h
+  - src/core/lib/security/credentials/alts/check_gcp_environment.h
+  - src/core/lib/security/credentials/alts/grpc_alts_credentials_options.h
+  - src/core/lib/security/credentials/composite/composite_credentials.h
+  - src/core/lib/security/credentials/credentials.h
+  - src/core/lib/security/credentials/external/aws_external_account_credentials.h
+  - src/core/lib/security/credentials/external/aws_request_signer.h
+  - src/core/lib/security/credentials/external/external_account_credentials.h
+  - src/core/lib/security/credentials/external/file_external_account_credentials.h
+  - src/core/lib/security/credentials/external/url_external_account_credentials.h
+  - src/core/lib/security/credentials/fake/fake_credentials.h
+  - src/core/lib/security/credentials/google_default/google_default_credentials.h
+  - src/core/lib/security/credentials/iam/iam_credentials.h
+  - src/core/lib/security/credentials/jwt/json_token.h
+  - src/core/lib/security/credentials/jwt/jwt_credentials.h
+  - src/core/lib/security/credentials/jwt/jwt_verifier.h
+  - src/core/lib/security/credentials/local/local_credentials.h
+  - src/core/lib/security/credentials/oauth2/oauth2_credentials.h
+  - src/core/lib/security/credentials/plugin/plugin_credentials.h
+  - src/core/lib/security/credentials/ssl/ssl_credentials.h
+  - src/core/lib/security/credentials/tls/grpc_tls_certificate_distributor.h
+  - src/core/lib/security/credentials/tls/grpc_tls_certificate_provider.h
+  - src/core/lib/security/credentials/tls/grpc_tls_certificate_verifier.h
+  - src/core/lib/security/credentials/tls/grpc_tls_credentials_options.h
+  - src/core/lib/security/credentials/tls/tls_credentials.h
+  - src/core/lib/security/credentials/tls/tls_utils.h
+  - src/core/lib/security/security_connector/alts/alts_security_connector.h
+  - src/core/lib/security/security_connector/fake/fake_security_connector.h
+  - src/core/lib/security/security_connector/insecure/insecure_security_connector.h
+  - src/core/lib/security/security_connector/load_system_roots.h
+  - src/core/lib/security/security_connector/load_system_roots_linux.h
+  - src/core/lib/security/security_connector/local/local_security_connector.h
+  - src/core/lib/security/security_connector/security_connector.h
+  - src/core/lib/security/security_connector/ssl/ssl_security_connector.h
+  - src/core/lib/security/security_connector/ssl_utils.h
+  - src/core/lib/security/security_connector/ssl_utils_config.h
+  - src/core/lib/security/security_connector/tls/tls_security_connector.h
+  - src/core/lib/security/transport/auth_filters.h
+  - src/core/lib/security/transport/secure_endpoint.h
+  - src/core/lib/security/transport/security_handshaker.h
+  - src/core/lib/security/transport/tsi_error.h
+  - src/core/lib/security/util/json_util.h
   - src/core/lib/slice/b64.h
   - src/core/lib/slice/percent_encoding.h
   - src/core/lib/slice/slice.h
@@ -2009,6 +2073,33 @@ libs:
   - src/core/lib/transport/transport.h
   - src/core/lib/transport/transport_impl.h
   - src/core/lib/uri/uri_parser.h
+  - src/core/tsi/alts/crypt/gsec.h
+  - src/core/tsi/alts/frame_protector/alts_counter.h
+  - src/core/tsi/alts/frame_protector/alts_crypter.h
+  - src/core/tsi/alts/frame_protector/alts_frame_protector.h
+  - src/core/tsi/alts/frame_protector/alts_record_protocol_crypter_common.h
+  - src/core/tsi/alts/frame_protector/frame_handler.h
+  - src/core/tsi/alts/handshaker/alts_handshaker_client.h
+  - src/core/tsi/alts/handshaker/alts_shared_resource.h
+  - src/core/tsi/alts/handshaker/alts_tsi_handshaker.h
+  - src/core/tsi/alts/handshaker/alts_tsi_handshaker_private.h
+  - src/core/tsi/alts/handshaker/alts_tsi_utils.h
+  - src/core/tsi/alts/handshaker/transport_security_common_api.h
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_grpc_integrity_only_record_protocol.h
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_grpc_privacy_integrity_record_protocol.h
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_grpc_record_protocol.h
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_grpc_record_protocol_common.h
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_iovec_record_protocol.h
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_zero_copy_grpc_protector.h
+  - src/core/tsi/fake_transport_security.h
+  - src/core/tsi/local_transport_security.h
+  - src/core/tsi/ssl/session_cache/ssl_session.h
+  - src/core/tsi/ssl/session_cache/ssl_session_cache.h
+  - src/core/tsi/ssl_transport_security.h
+  - src/core/tsi/ssl_types.h
+  - src/core/tsi/transport_security.h
+  - src/core/tsi/transport_security_grpc.h
+  - src/core/tsi/transport_security_interface.h
   - third_party/xxhash/xxhash.h
   src:
   - src/core/ext/filters/census/grpc_context.cc
@@ -2079,6 +2170,7 @@ libs:
   - src/core/ext/filters/max_age/max_age_filter.cc
   - src/core/ext/filters/message_size/message_size_filter.cc
   - src/core/ext/filters/rbac/rbac_filter.cc
+  - src/core/ext/filters/rbac/rbac_service_config_parser.cc
   - src/core/ext/service_config/service_config.cc
   - src/core/ext/service_config/service_config_parser.cc
   - src/core/ext/transport/chttp2/alpn/alpn.cc
@@ -2116,6 +2208,9 @@ libs:
   - src/core/ext/transport/inproc/inproc_transport.cc
   - src/core/ext/upb-generated/google/protobuf/duration.upb.c
   - src/core/ext/upb-generated/google/protobuf/timestamp.upb.c
+  - src/core/ext/upb-generated/src/proto/grpc/gcp/altscontext.upb.c
+  - src/core/ext/upb-generated/src/proto/grpc/gcp/handshaker.upb.c
+  - src/core/ext/upb-generated/src/proto/grpc/gcp/transport_security_common.upb.c
   - src/core/ext/upb-generated/src/proto/grpc/health/v1/health.upb.c
   - src/core/ext/upb-generated/src/proto/grpc/lb/v1/load_balancer.upb.c
   - src/core/ext/upb-generated/validate/validate.upb.c
@@ -2152,6 +2247,7 @@ libs:
   - src/core/lib/event_engine/sockaddr.cc
   - src/core/lib/http/format_request.cc
   - src/core/lib/http/httpcli.cc
+  - src/core/lib/http/httpcli_security_connector.cc
   - src/core/lib/http/parser.cc
   - src/core/lib/iomgr/buffer_list.cc
   - src/core/lib/iomgr/call_combiner.cc
@@ -2250,6 +2346,7 @@ libs:
   - src/core/lib/json/json_reader.cc
   - src/core/lib/json/json_util.cc
   - src/core/lib/json/json_writer.cc
+  - src/core/lib/matchers/matchers.cc
   - src/core/lib/promise/activity.cc
   - src/core/lib/resource_quota/api.cc
   - src/core/lib/resource_quota/memory_quota.cc
@@ -2257,6 +2354,64 @@ libs:
   - src/core/lib/resource_quota/thread_quota.cc
   - src/core/lib/resource_quota/trace.cc
   - src/core/lib/security/authorization/authorization_policy_provider_null_vtable.cc
+  - src/core/lib/security/authorization/authorization_policy_provider_vtable.cc
+  - src/core/lib/security/authorization/evaluate_args.cc
+  - src/core/lib/security/authorization/grpc_authorization_engine.cc
+  - src/core/lib/security/authorization/matchers.cc
+  - src/core/lib/security/authorization/rbac_policy.cc
+  - src/core/lib/security/authorization/sdk_server_authz_filter.cc
+  - src/core/lib/security/context/security_context.cc
+  - src/core/lib/security/credentials/alts/alts_credentials.cc
+  - src/core/lib/security/credentials/alts/check_gcp_environment.cc
+  - src/core/lib/security/credentials/alts/check_gcp_environment_linux.cc
+  - src/core/lib/security/credentials/alts/check_gcp_environment_no_op.cc
+  - src/core/lib/security/credentials/alts/check_gcp_environment_windows.cc
+  - src/core/lib/security/credentials/alts/grpc_alts_credentials_client_options.cc
+  - src/core/lib/security/credentials/alts/grpc_alts_credentials_options.cc
+  - src/core/lib/security/credentials/alts/grpc_alts_credentials_server_options.cc
+  - src/core/lib/security/credentials/composite/composite_credentials.cc
+  - src/core/lib/security/credentials/credentials.cc
+  - src/core/lib/security/credentials/credentials_metadata.cc
+  - src/core/lib/security/credentials/external/aws_external_account_credentials.cc
+  - src/core/lib/security/credentials/external/aws_request_signer.cc
+  - src/core/lib/security/credentials/external/external_account_credentials.cc
+  - src/core/lib/security/credentials/external/file_external_account_credentials.cc
+  - src/core/lib/security/credentials/external/url_external_account_credentials.cc
+  - src/core/lib/security/credentials/fake/fake_credentials.cc
+  - src/core/lib/security/credentials/google_default/credentials_generic.cc
+  - src/core/lib/security/credentials/google_default/google_default_credentials.cc
+  - src/core/lib/security/credentials/iam/iam_credentials.cc
+  - src/core/lib/security/credentials/insecure/insecure_credentials.cc
+  - src/core/lib/security/credentials/jwt/json_token.cc
+  - src/core/lib/security/credentials/jwt/jwt_credentials.cc
+  - src/core/lib/security/credentials/jwt/jwt_verifier.cc
+  - src/core/lib/security/credentials/local/local_credentials.cc
+  - src/core/lib/security/credentials/oauth2/oauth2_credentials.cc
+  - src/core/lib/security/credentials/plugin/plugin_credentials.cc
+  - src/core/lib/security/credentials/ssl/ssl_credentials.cc
+  - src/core/lib/security/credentials/tls/grpc_tls_certificate_distributor.cc
+  - src/core/lib/security/credentials/tls/grpc_tls_certificate_provider.cc
+  - src/core/lib/security/credentials/tls/grpc_tls_certificate_verifier.cc
+  - src/core/lib/security/credentials/tls/grpc_tls_credentials_options.cc
+  - src/core/lib/security/credentials/tls/tls_credentials.cc
+  - src/core/lib/security/credentials/tls/tls_utils.cc
+  - src/core/lib/security/security_connector/alts/alts_security_connector.cc
+  - src/core/lib/security/security_connector/fake/fake_security_connector.cc
+  - src/core/lib/security/security_connector/insecure/insecure_security_connector.cc
+  - src/core/lib/security/security_connector/load_system_roots_fallback.cc
+  - src/core/lib/security/security_connector/load_system_roots_linux.cc
+  - src/core/lib/security/security_connector/local/local_security_connector.cc
+  - src/core/lib/security/security_connector/security_connector.cc
+  - src/core/lib/security/security_connector/ssl/ssl_security_connector.cc
+  - src/core/lib/security/security_connector/ssl_utils.cc
+  - src/core/lib/security/security_connector/ssl_utils_config.cc
+  - src/core/lib/security/security_connector/tls/tls_security_connector.cc
+  - src/core/lib/security/transport/client_auth_filter.cc
+  - src/core/lib/security/transport/secure_endpoint.cc
+  - src/core/lib/security/transport/security_handshaker.cc
+  - src/core/lib/security/transport/server_auth_filter.cc
+  - src/core/lib/security/transport/tsi_error.cc
+  - src/core/lib/security/util/json_util.cc
   - src/core/lib/slice/b64.cc
   - src/core/lib/slice/percent_encoding.cc
   - src/core/lib/slice/slice.cc
@@ -2282,6 +2437,7 @@ libs:
   - src/core/lib/surface/completion_queue_factory.cc
   - src/core/lib/surface/event_string.cc
   - src/core/lib/surface/init.cc
+  - src/core/lib/surface/init_secure.cc
   - src/core/lib/surface/init_unsecure.cc
   - src/core/lib/surface/lame_client.cc
   - src/core/lib/surface/metadata_array.cc
@@ -2304,6 +2460,33 @@ libs:
   - src/core/lib/transport/transport_op_string.cc
   - src/core/lib/uri/uri_parser.cc
   - src/core/plugin_registry/grpc_unsecure_plugin_registry.cc
+  - src/core/tsi/alts/crypt/aes_gcm.cc
+  - src/core/tsi/alts/crypt/gsec.cc
+  - src/core/tsi/alts/frame_protector/alts_counter.cc
+  - src/core/tsi/alts/frame_protector/alts_crypter.cc
+  - src/core/tsi/alts/frame_protector/alts_frame_protector.cc
+  - src/core/tsi/alts/frame_protector/alts_record_protocol_crypter_common.cc
+  - src/core/tsi/alts/frame_protector/alts_seal_privacy_integrity_crypter.cc
+  - src/core/tsi/alts/frame_protector/alts_unseal_privacy_integrity_crypter.cc
+  - src/core/tsi/alts/frame_protector/frame_handler.cc
+  - src/core/tsi/alts/handshaker/alts_handshaker_client.cc
+  - src/core/tsi/alts/handshaker/alts_shared_resource.cc
+  - src/core/tsi/alts/handshaker/alts_tsi_handshaker.cc
+  - src/core/tsi/alts/handshaker/alts_tsi_utils.cc
+  - src/core/tsi/alts/handshaker/transport_security_common_api.cc
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_grpc_integrity_only_record_protocol.cc
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_grpc_privacy_integrity_record_protocol.cc
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_grpc_record_protocol_common.cc
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_iovec_record_protocol.cc
+  - src/core/tsi/alts/zero_copy_frame_protector/alts_zero_copy_grpc_protector.cc
+  - src/core/tsi/fake_transport_security.cc
+  - src/core/tsi/local_transport_security.cc
+  - src/core/tsi/ssl/session_cache/ssl_session_boringssl.cc
+  - src/core/tsi/ssl/session_cache/ssl_session_cache.cc
+  - src/core/tsi/ssl/session_cache/ssl_session_openssl.cc
+  - src/core/tsi/ssl_transport_security.cc
+  - src/core/tsi/transport_security.cc
+  - src/core/tsi/transport_security_grpc.cc
   deps:
   - absl/container:flat_hash_map
   - absl/container:inlined_vector
@@ -2312,6 +2495,7 @@ libs:
   - absl/types:variant
   - absl/utility:utility
   - gpr
+  - libssl
   - address_sorting
   baselib: true
   generate_plugin_registry: true
@@ -3935,16 +4119,10 @@ targets:
   build: test
   language: c
   headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
   - src/core/lib/security/authorization/rbac_translator.h
   src:
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - src/core/lib/security/authorization/rbac_translator.cc
   - test/core/surface/public_headers_must_be_c89.c
   deps:
@@ -4679,14 +4857,8 @@ targets:
   gtest: true
   build: test
   language: c++
-  headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
+  headers: []
   src:
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - test/core/security/authorization_matchers_test.cc
   deps:
   - grpc_test_util
@@ -4695,16 +4867,10 @@ targets:
   build: test
   language: c++
   headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
   - src/core/lib/security/authorization/rbac_translator.h
   src:
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - src/core/lib/security/authorization/rbac_translator.cc
   - src/cpp/server/authorization_policy_provider.cc
   - test/cpp/server/authorization_policy_provider_test.cc
@@ -4961,20 +5127,14 @@ targets:
   language: c++
   headers:
   - src/core/lib/security/authorization/cel_authorization_engine.h
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
-  - src/core/lib/security/authorization/matchers.h
   - src/core/lib/security/authorization/mock_cel/activation.h
   - src/core/lib/security/authorization/mock_cel/cel_expr_builder_factory.h
   - src/core/lib/security/authorization/mock_cel/cel_expression.h
   - src/core/lib/security/authorization/mock_cel/cel_value.h
   - src/core/lib/security/authorization/mock_cel/evaluator_core.h
   - src/core/lib/security/authorization/mock_cel/flat_expr_builder.h
-  - src/core/lib/security/authorization/rbac_policy.h
   src:
   - src/core/lib/security/authorization/cel_authorization_engine.cc
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - test/core/security/cel_authorization_engine_test.cc
   deps:
   - absl/container:flat_hash_set
@@ -6128,14 +6288,8 @@ targets:
   gtest: true
   build: test
   language: c++
-  headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
+  headers: []
   src:
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - test/core/security/grpc_authorization_engine_test.cc
   deps:
   - grpc_test_util
@@ -6144,16 +6298,10 @@ targets:
   build: test
   language: c++
   headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
   - src/core/lib/security/authorization/rbac_translator.h
   src:
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - src/core/lib/security/authorization/rbac_translator.cc
   - test/core/security/grpc_authorization_policy_provider_test.cc
   deps:
@@ -7443,16 +7591,10 @@ targets:
   build: test
   language: c++
   headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
   - src/core/lib/security/authorization/rbac_translator.h
   src:
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - src/core/lib/security/authorization/rbac_translator.cc
   - test/core/security/rbac_translator_test.cc
   deps:
@@ -7598,20 +7740,14 @@ targets:
   build: test
   language: c++
   headers:
-  - src/core/lib/security/authorization/grpc_authorization_engine.h
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.h
-  - src/core/lib/security/authorization/matchers.h
-  - src/core/lib/security/authorization/rbac_policy.h
   - src/core/lib/security/authorization/rbac_translator.h
   - test/cpp/end2end/test_service_impl.h
   src:
   - src/proto/grpc/testing/echo.proto
   - src/proto/grpc/testing/echo_messages.proto
   - src/proto/grpc/testing/simple_messages.proto
-  - src/core/lib/security/authorization/grpc_authorization_engine.cc
   - src/core/lib/security/authorization/grpc_authorization_policy_provider.cc
-  - src/core/lib/security/authorization/matchers.cc
-  - src/core/lib/security/authorization/rbac_policy.cc
   - src/core/lib/security/authorization/rbac_translator.cc
   - src/cpp/server/authorization_policy_provider.cc
   - test/cpp/end2end/sdk_authz_end2end_test.cc

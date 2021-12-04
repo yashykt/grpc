@@ -2413,7 +2413,7 @@ grpc_cc_library(
     ],
     hdrs = [
         "src/core/ext/filters/rbac/rbac_filter.h",
-        "src/core/ext/filters/rbac/rbac_service_config_parser.h"
+        "src/core/ext/filters/rbac/rbac_service_config_parser.h",
     ],
     external_deps = ["absl/strings:str_format"],
     language = "c++",
