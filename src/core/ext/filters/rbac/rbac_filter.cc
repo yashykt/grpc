@@ -1,5 +1,4 @@
 //
-//
 // Copyright 2021 gRPC authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -14,15 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 //
-//
 
 #include <grpc/support/port_platform.h>
 
-#include "src/core/ext/filters/server_config_selector/server_config_selector_filter.h"
-
-#include "src/core/ext/filters/server_config_selector/server_config_selector.h"
-#include "src/core/ext/service_config/service_config_call_data.h"
-#include "src/core/lib/transport/error_utils.h"
+#include "src/core/ext/filters/rbac/rbac_filter.h"
 
 namespace grpc_core {
 
@@ -34,34 +28,13 @@ class ChannelData {
                                 grpc_channel_element_args* args);
   static void Destroy(grpc_channel_element* elem);
 
-  absl::StatusOr<RefCountedPtr<ServerConfigSelector>> config_selector() {
-    MutexLock lock(&mu_);
-    return config_selector_;
-  }
+  int index() const { return index_; }
 
  private:
-  class ServerConfigSelectorWatcher
-      : public ServerConfigSelectorProvider::ServerConfigSelectorWatcher {
-   public:
-    explicit ServerConfigSelectorWatcher(ChannelData* chand) : chand_(chand) {}
-    void OnServerConfigSelectorUpdate(
-        absl::StatusOr<RefCountedPtr<ServerConfigSelector>> update) override {
-      MutexLock lock(&chand_->mu_);
-      chand_->config_selector_ = std::move(update);
-    }
+  ChannelData(grpc_channel_element* elem, grpc_channel_element_args* args);
 
-   private:
-    ChannelData* chand_;
-  };
-
-  explicit ChannelData(RefCountedPtr<ServerConfigSelectorProvider>
-                           server_config_selector_provider);
-  ~ChannelData();
-
-  RefCountedPtr<ServerConfigSelectorProvider> server_config_selector_provider_;
-  Mutex mu_;
-  absl::StatusOr<RefCountedPtr<ServerConfigSelector>> config_selector_
-      ABSL_GUARDED_BY(mu_);
+  // The index of this filter instance among instances of the same filter.
+  int index_;
 };
 
 class CallData {
@@ -83,9 +56,7 @@ class CallData {
                                         grpc_error_handle error);
   void MaybeResumeRecvTrailingMetadataReady();
 
-  grpc_call_context_element* call_context_;
   CallCombiner* call_combiner_;
-  ServiceConfigCallData service_config_call_data_;
   // Overall error for the call
   grpc_error_handle error_ = GRPC_ERROR_NONE;
   // State for keeping track of recv_initial_metadata
@@ -93,9 +64,9 @@ class CallData {
   grpc_closure* original_recv_initial_metadata_ready_ = nullptr;
   grpc_closure recv_initial_metadata_ready_;
   // State for keeping of track of recv_trailing_metadata
-  grpc_closure* original_recv_trailing_metadata_ready_;
+  grpc_closure* original_recv_trailing_metadata_ready_ = nullptr;
   grpc_closure recv_trailing_metadata_ready_;
-  grpc_error_handle recv_trailing_metadata_ready_error_;
+  grpc_error_handle recv_trailing_metadata_ready_error_ = GRPC_ERROR_NONE;
   bool seen_recv_trailing_metadata_ready_ = false;
 };
 
@@ -103,15 +74,8 @@ class CallData {
 
 grpc_error_handle ChannelData::Init(grpc_channel_element* elem,
                                     grpc_channel_element_args* args) {
-  GPR_ASSERT(elem->filter == &kServerConfigSelectorFilter);
-  RefCountedPtr<ServerConfigSelectorProvider> server_config_selector_provider =
-      ServerConfigSelectorProvider::GetFromChannelArgs(*args->channel_args);
-  if (server_config_selector_provider == nullptr) {
-    return GRPC_ERROR_CREATE_FROM_STATIC_STRING(
-        "No ServerConfigSelectorProvider object found");
-  }
-  new (elem->channel_data)
-      ChannelData(std::move(server_config_selector_provider));
+  GPR_ASSERT(elem->filter == &kRbacFilter);
+  new (elem->channel_data) ChannelData(elem, args);
   return GRPC_ERROR_NONE;
 }
 
@@ -120,18 +84,10 @@ void ChannelData::Destroy(grpc_channel_element* elem) {
   chand->~ChannelData();
 }
 
-ChannelData::ChannelData(
-    RefCountedPtr<ServerConfigSelectorProvider> server_config_selector_provider)
-    : server_config_selector_provider_(
-          std::move(server_config_selector_provider)) {
-  GPR_ASSERT(server_config_selector_provider_ != nullptr);
-  auto server_config_selector_watcher =
-      absl::make_unique<ServerConfigSelectorWatcher>(this);
-  config_selector_ = server_config_selector_provider_->Watch(
-      std::move(server_config_selector_watcher));
-}
-
-ChannelData::~ChannelData() { server_config_selector_provider_->CancelWatch(); }
+ChannelData::ChannelData(grpc_channel_element* elem,
+                         grpc_channel_element_args* args)
+    : index_(grpc_channel_stack_filter_instance_number(args->channel_stack,
+                                                       elem)) {}
 
 // CallData
 
@@ -172,19 +128,14 @@ void CallData::StartTransportStreamOpBatch(grpc_call_element* elem,
 }
 
 CallData::CallData(grpc_call_element* elem, const grpc_call_element_args& args)
-    : call_context_(args.context), call_combiner_(args.call_combiner) {
+    : call_combiner_(args.call_combiner) {
   GRPC_CLOSURE_INIT(&recv_initial_metadata_ready_, RecvInitialMetadataReady,
                     elem, grpc_schedule_on_exec_ctx);
   GRPC_CLOSURE_INIT(&recv_trailing_metadata_ready_, RecvTrailingMetadataReady,
                     elem, grpc_schedule_on_exec_ctx);
 }
 
-CallData::~CallData() {
-  // Remove the entry from call context, just in case anyone above us
-  // tries to look at it during call stack destruction.
-  call_context_[GRPC_CONTEXT_SERVICE_CONFIG_CALL_DATA].value = nullptr;
-  GRPC_ERROR_UNREF(error_);
-}
+CallData::~CallData() { GRPC_ERROR_UNREF(error_); }
 
 void CallData::RecvInitialMetadataReady(void* user_data,
                                         grpc_error_handle error) {
@@ -192,24 +143,6 @@ void CallData::RecvInitialMetadataReady(void* user_data,
   CallData* calld = static_cast<CallData*>(elem->call_data);
   ChannelData* chand = static_cast<ChannelData*>(elem->channel_data);
   if (error == GRPC_ERROR_NONE) {
-    auto config_selector = chand->config_selector();
-    if (config_selector.ok()) {
-      auto call_config =
-          config_selector.value()->GetCallConfig(calld->recv_initial_metadata_);
-      if (call_config.error != GRPC_ERROR_NONE) {
-        calld->error_ = call_config.error;
-        error = call_config.error;  // Does not take a ref
-      } else {
-        calld->service_config_call_data_ =
-            ServiceConfigCallData(std::move(call_config.service_config),
-                                  call_config.method_configs, {});
-        calld->call_context_[GRPC_CONTEXT_SERVICE_CONFIG_CALL_DATA].value =
-            &calld->service_config_call_data_;
-      }
-    } else {
-      calld->error_ = absl_status_to_grpc_error(config_selector.status());
-      error = calld->error_;
-    }
   }
   calld->MaybeResumeRecvTrailingMetadataReady();
   grpc_closure* closure = calld->original_recv_initial_metadata_ready_;
@@ -248,7 +181,7 @@ void CallData::MaybeResumeRecvTrailingMetadataReady() {
 
 }  // namespace
 
-const grpc_channel_filter kServerConfigSelectorFilter = {
+const grpc_channel_filter kRbacFilter = {
     CallData::StartTransportStreamOpBatch,
     grpc_channel_next_op,
     sizeof(CallData),
@@ -259,7 +192,7 @@ const grpc_channel_filter kServerConfigSelectorFilter = {
     ChannelData::Init,
     ChannelData::Destroy,
     grpc_channel_next_get_info,
-    "server_config_selector_filter",
+    "rbac_filter",
 };
 
 }  // namespace grpc_core
