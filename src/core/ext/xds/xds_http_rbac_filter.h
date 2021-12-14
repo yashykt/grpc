@@ -31,7 +31,7 @@ class XdsHttpRbacFilter : public XdsHttpFilterImpl {
   void PopulateSymtab(upb_symtab* symtab) const override;
 
   absl::StatusOr<FilterConfig> GenerateFilterConfig(
-      upb_strview serialized_filter_config, upb_arena* arena) const override;
+      upb_strview serialized_rbac, upb_arena* arena) const override;
 
   absl::StatusOr<FilterConfig> GenerateFilterConfigOverride(
       upb_strview serialized_filter_config, upb_arena* arena) const override;
