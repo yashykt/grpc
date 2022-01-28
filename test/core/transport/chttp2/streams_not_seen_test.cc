@@ -187,6 +187,7 @@ class StreamsNotSeenTest : public ::testing::Test {
       CQ_EXPECT_COMPLETION(cqv_, Tag(1), true);
       cq_verify(cqv_, 5);
       state = grpc_channel_check_connectivity_state(channel_, false);
+      gpr_log(GPR_INFO, "state %d", state);
     }
     GPR_ASSERT(
         connect_notification_.WaitForNotificationWithTimeout(absl::Seconds(1)));
