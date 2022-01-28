@@ -230,7 +230,9 @@ class StreamsNotSeenTest : public ::testing::Test {
       self->Write(absl::string_view(kHttp2SettingsFrame,
                                     sizeof(kHttp2SettingsFrame) - 1));
     }
+    gpr_log(GPR_ERROR, "before connect notification");
     self->connect_notification_.Notify();
+    gpr_log(GPR_ERROR, "after connect notification");
   }
 
   void Write(absl::string_view bytes) {
@@ -275,7 +277,9 @@ class StreamsNotSeenTest : public ::testing::Test {
     GPR_ASSERT(error == GRPC_ERROR_NONE);
     absl::Notification* on_write_done_notification_ =
         static_cast<absl::Notification*>(arg);
+    gpr_log(GPR_ERROR, "on write notification before");
     on_write_done_notification_->Notify();
+    gpr_log(GPR_ERROR, "on write notification after");
   }
 
   static void OnReadDone(void* arg, grpc_error_handle error) {
@@ -294,7 +298,9 @@ class StreamsNotSeenTest : public ::testing::Test {
                          false);
     } else {
       grpc_slice_buffer_destroy(&self->read_buffer_);
+      gpr_log(GPR_ERROR, "on read notification before");
       self->read_end_notification_.Notify();
+      gpr_log(GPR_ERROR, "on read notification after");
     }
   }
 
