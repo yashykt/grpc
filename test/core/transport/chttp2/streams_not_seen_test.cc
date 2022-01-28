@@ -186,7 +186,8 @@ class StreamsNotSeenTest : public ::testing::Test {
       cq_verify(cqv_);
       state = grpc_channel_check_connectivity_state(channel_, false);
     }
-    connect_notification_.WaitForNotificationWithTimeout(absl::Seconds(1));
+    GPR_ASSERT(
+        connect_notification_.WaitForNotificationWithTimeout(absl::Seconds(1)));
   }
 
   ~StreamsNotSeenTest() override {
@@ -201,7 +202,8 @@ class StreamsNotSeenTest : public ::testing::Test {
     grpc_channel_destroy(channel_);
     grpc_endpoint_shutdown(
         tcp_, GRPC_ERROR_CREATE_FROM_STATIC_STRING("Test Shutdown"));
-    read_end_notification_.WaitForNotificationWithTimeout(absl::Seconds(5));
+    GPR_ASSERT(read_end_notification_.WaitForNotificationWithTimeout(
+        absl::Seconds(5)));
     grpc_endpoint_destroy(tcp_);
     shutdown_ = true;
     server_poll_thread_->join();
@@ -270,8 +272,8 @@ class StreamsNotSeenTest : public ::testing::Test {
     GRPC_CLOSURE_INIT(&on_write_done_, OnWriteDone,
                       &on_write_done_notification_, nullptr);
     grpc_endpoint_write(tcp_, buffer, &on_write_done_, nullptr);
-    on_write_done_notification_.WaitForNotificationWithTimeout(
-        absl::Seconds(5));
+    GPR_ASSERT(on_write_done_notification_.WaitForNotificationWithTimeout(
+        absl::Seconds(5)));
     gpr_log(GPR_ERROR, "write buffer end");
   }
 
