@@ -291,6 +291,7 @@ class StreamsNotSeenTest : public ::testing::Test {
     GRPC_CLOSURE_INIT(&on_write_done_, OnWriteDone,
                       &on_write_done_notification_, nullptr);
     grpc_endpoint_write(tcp_, buffer, &on_write_done_, nullptr);
+    ExecCtx::Get()->Flush();
     GPR_ASSERT(on_write_done_notification_.WaitForNotificationWithTimeout(
         absl::Seconds(5)));
     gpr_log(GPR_ERROR, "write buffer end");
