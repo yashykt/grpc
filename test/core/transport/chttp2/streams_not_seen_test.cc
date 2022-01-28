@@ -183,9 +183,9 @@ class StreamsNotSeenTest : public ::testing::Test {
         channel_, /*try_to_connect=*/true);
     while (state != GRPC_CHANNEL_READY) {
       grpc_channel_watch_connectivity_state(
-          channel_, state, grpc_timeout_seconds_to_deadline(5), cq_, Tag(1));
+          channel_, state, grpc_timeout_seconds_to_deadline(1), cq_, Tag(1));
       CQ_EXPECT_COMPLETION(cqv_, Tag(1), true);
-      cq_verify(cqv_);
+      cq_verify(cqv_, 5);
       state = grpc_channel_check_connectivity_state(channel_, false);
     }
     GPR_ASSERT(
