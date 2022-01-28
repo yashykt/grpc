@@ -160,7 +160,9 @@ class StreamsNotSeenTest : public ::testing::Test {
     // Start polling on the test tcp server
     server_poll_thread_ = absl::make_unique<std::thread>([this]() {
       while (!shutdown_) {
+        gpr_log(GPR_ERROR, "poll start");
         test_tcp_server_poll(&server_, 10);
+        gpr_log(GPR_ERROR, "poll end");
       }
     });
     // Create the channel
