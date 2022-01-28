@@ -189,19 +189,9 @@ class StreamsNotSeenTest : public ::testing::Test {
       state = grpc_channel_check_connectivity_state(channel_, false);
       gpr_log(GPR_INFO, "state %d %d", state, GRPC_CHANNEL_READY);
     }
-    std::atomic<bool> cq_poller_done{false};
-    std::thread cq_poller([&]() {
-      while (!cq_poller_done) {
-        grpc_event ev = grpc_completion_queue_next(
-            cq_, grpc_timeout_milliseconds_to_deadline(10), nullptr);
-        GPR_ASSERT(ev.type == GRPC_QUEUE_TIMEOUT);
-      }
-    });
     ExecCtx::Get()->Flush();
     GPR_ASSERT(
         connect_notification_.WaitForNotificationWithTimeout(absl::Seconds(1)));
-    cq_poller_done = true;
-    cq_poller.join();
   }
 
   ~StreamsNotSeenTest() override {
