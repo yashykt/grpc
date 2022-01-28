@@ -221,24 +221,30 @@ class StreamsNotSeenTest : public ::testing::Test {
     self->tcp_ = tcp;
     grpc_endpoint_add_to_pollset(tcp, self->server_.pollset[0]);
     grpc_endpoint_read(tcp, &self->read_buffer_, &self->on_read_done_, false);
-    // Send settings frame from server
-    if (self->server_allows_streams_) {
-      constexpr char kHttp2SettingsFrame[] =
-          "\x00\x00\x00\x04\x00\x00\x00\x00\x00";
-      self->Write(absl::string_view(kHttp2SettingsFrame,
-                                    sizeof(kHttp2SettingsFrame) - 1));
-    } else {
-      // Create a settings frame with a max concurrent stream setting of 0
-      constexpr char kHttp2SettingsFrame[] =
-          "\x00\x00\x06\x04\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00";
-      self->Write(absl::string_view(kHttp2SettingsFrame,
-                                    sizeof(kHttp2SettingsFrame) - 1));
-    }
-    gpr_log(GPR_ERROR, "before connect notification");
-    self->connect_notification_.Notify();
-    gpr_log(GPR_ERROR, "after connect notification");
+    std::thread([self]() {
+      ExecCtx exec_ctx;
+      // Send settings frame from server
+      if (self->server_allows_streams_) {
+        constexpr char kHttp2SettingsFrame[] =
+            "\x00\x00\x00\x04\x00\x00\x00\x00\x00";
+        self->Write(absl::string_view(kHttp2SettingsFrame,
+                                      sizeof(kHttp2SettingsFrame) - 1));
+      } else {
+        // Create a settings frame with a max concurrent stream setting of 0
+        constexpr char kHttp2SettingsFrame[] =
+            "\x00\x00\x06\x04\x00\x00\x00\x00\x00\x00\x03\x00\x00\x00\x00";
+        self->Write(absl::string_view(kHttp2SettingsFrame,
+                                      sizeof(kHttp2SettingsFrame) - 1));
+      }
+      gpr_log(GPR_ERROR, "before connect notification");
+      self->connect_notification_.Notify();
+      gpr_log(GPR_ERROR, "after connect notification");
+    }).detach();
   }
 
+  // This is a blocking call. It waits for the write callback to be invoked
+  // before returning. (In other words, do not call this from a thread that
+  // should not be blocked, for example, a polling thread.)
   void Write(absl::string_view bytes) {
     grpc_slice slice =
         StaticSlice::FromStaticBuffer(bytes.data(), bytes.size()).TakeCSlice();
@@ -315,6 +321,7 @@ class StreamsNotSeenTest : public ::testing::Test {
     std::atomic<bool> done{false};
     std::thread cq_driver([&]() {
       while (!done) {
+        gpr_log(GPR_ERROR, "polling");
         grpc_event ev = grpc_completion_queue_next(
             cq_, grpc_timeout_milliseconds_to_deadline(10), nullptr);
         GPR_ASSERT(ev.type == GRPC_QUEUE_TIMEOUT);
