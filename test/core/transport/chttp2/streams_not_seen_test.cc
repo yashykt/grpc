@@ -197,6 +197,7 @@ class StreamsNotSeenTest : public ::testing::Test {
         GPR_ASSERT(ev.type == GRPC_QUEUE_TIMEOUT);
       }
     });
+    ExecCtx::Get()->Flush();
     GPR_ASSERT(
         connect_notification_.WaitForNotificationWithTimeout(absl::Seconds(1)));
     cq_poller_done = true;
@@ -215,6 +216,7 @@ class StreamsNotSeenTest : public ::testing::Test {
     grpc_channel_destroy(channel_);
     grpc_endpoint_shutdown(
         tcp_, GRPC_ERROR_CREATE_FROM_STATIC_STRING("Test Shutdown"));
+    ExecCtx::Get()->Flush();
     GPR_ASSERT(read_end_notification_.WaitForNotificationWithTimeout(
         absl::Seconds(5)));
     grpc_endpoint_destroy(tcp_);
