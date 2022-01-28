@@ -254,9 +254,10 @@ static void win_read(grpc_endpoint* ep, grpc_slice_buffer* read_slices,
   if (tcp->shutting_down) {
     grpc_core::ExecCtx::Run(
         DEBUG_LOCATION, cb,
-        grpc_error_set_int(GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-            "TCP socket is shutting down", &tcp->shutdown_error, 1),
-        GRPC_ERROR_INT_GRPC_STATUS, GRPC_STATUS_UNAVAILABLE));
+        grpc_error_set_int(
+            GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
+                "TCP socket is shutting down", &tcp->shutdown_error, 1),
+            GRPC_ERROR_INT_GRPC_STATUS, GRPC_STATUS_UNAVAILABLE));
     return;
   }
 
@@ -369,9 +370,10 @@ static void win_write(grpc_endpoint* ep, grpc_slice_buffer* slices,
   if (tcp->shutting_down) {
     grpc_core::ExecCtx::Run(
         DEBUG_LOCATION, cb,
-        grpc_error_set_int(GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
-            "TCP socket is shutting down", &tcp->shutdown_error, 1),
-        GRPC_ERROR_INT_GRPC_STATUS, GRPC_STATUS_UNAVAILABLE));
+        grpc_error_set_int(
+            GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
+                "TCP socket is shutting down", &tcp->shutdown_error, 1),
+            GRPC_ERROR_INT_GRPC_STATUS, GRPC_STATUS_UNAVAILABLE));
     return;
   }
 
