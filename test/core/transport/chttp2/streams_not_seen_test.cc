@@ -265,12 +265,14 @@ class StreamsNotSeenTest : public ::testing::Test {
   }
 
   void WriteBuffer(grpc_slice_buffer* buffer) {
+    gpr_log(GPR_ERROR, "write buffer start");
     absl::Notification on_write_done_notification_;
     GRPC_CLOSURE_INIT(&on_write_done_, OnWriteDone,
                       &on_write_done_notification_, nullptr);
     grpc_endpoint_write(tcp_, buffer, &on_write_done_, nullptr);
     on_write_done_notification_.WaitForNotificationWithTimeout(
         absl::Seconds(5));
+    gpr_log(GPR_ERROR, "write buffer end");
   }
 
   static void OnWriteDone(void* arg, grpc_error_handle error) {
