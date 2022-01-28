@@ -152,6 +152,7 @@ grpc_error_handle grpc_chttp2_settings_parser_parse(void* p,
             t->num_pending_induced_frames++;
             grpc_slice_buffer_add(&t->qbuf, grpc_chttp2_settings_ack_create());
             if (t->notify_on_receive_settings != nullptr) {
+              gpr_log(GPR_ERROR, "received settings. invoking callback");
               grpc_core::ExecCtx::Run(DEBUG_LOCATION,
                                       t->notify_on_receive_settings,
                                       GRPC_ERROR_NONE);

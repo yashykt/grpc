@@ -193,6 +193,7 @@ void Chttp2Connector::OnHandshakeDone(void* arg, grpc_error_handle error) {
 }
 
 void Chttp2Connector::OnReceiveSettings(void* arg, grpc_error_handle error) {
+  gpr_log(GPR_ERROR, "OnReceiveSettings");
   Chttp2Connector* self = static_cast<Chttp2Connector*>(arg);
   {
     MutexLock lock(&self->mu_);
