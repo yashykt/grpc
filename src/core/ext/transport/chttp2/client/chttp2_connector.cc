@@ -247,6 +247,7 @@ void Chttp2Connector::OnTimeout(void* arg, grpc_error_handle /*error*/) {
 void Chttp2Connector::MaybeNotify(grpc_error_handle error) {
   if (notify_error_.has_value()) {
     GRPC_ERROR_UNREF(error);
+    gpr_log(GPR_ERROR, "notifying");
     NullThenSchedClosure(DEBUG_LOCATION, &notify_, notify_error_.value());
     // Clear state for a new Connect().
     // Clear out the endpoint_, since it is the responsibility of
