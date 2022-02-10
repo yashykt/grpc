@@ -42,7 +42,7 @@ class XdsCredentials final : public grpc_channel_credentials {
       const grpc_channel_args* args, grpc_channel_args** new_args) override;
 
   int cmp(const grpc_channel_credentials* other) const override {
-    return grpc_core::QsortCompare(
+    return QsortCompare(
         static_cast<const grpc_channel_credentials*>(this), other);
   }
 

@@ -192,7 +192,7 @@ class HttpRequestSSLCredentials : public grpc_channel_credentials {
   }
 
   int cmp(const grpc_channel_credentials* other) const override {
-    return grpc_core::QsortCompare(
+    return QsortCompare(
         static_cast<const grpc_channel_credentials*>(this), other);
   }
 };
