@@ -3631,7 +3631,7 @@ int main(int argc, char** argv) {
   grpc::testing::TestEnvironment env(argc, argv);
   grpc_init();
   auto result = RUN_ALL_TESTS();
-  //TestGoogleDefaultCredsExternalAccountCredentials();
+  // TestGoogleDefaultCredsExternalAccountCredentials();
   grpc_shutdown();
   return result;
 }
