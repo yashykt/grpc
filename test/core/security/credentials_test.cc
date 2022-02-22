@@ -796,9 +796,9 @@ TEST(CredentialsTest, TestComputeEngineCredsFailure) {
   HttpRequest::SetOverride(nullptr, nullptr);
 }
 
-static void validate_refresh_token_http_request(
-    const grpc_http_request* request, const char* host, const char* path,
-    const char* body, size_t body_size) {
+void validate_refresh_token_http_request(const grpc_http_request* request,
+                                         const char* host, const char* path,
+                                         const char* body, size_t body_size) {
   /* The content of the assertion is tested extensively in json_token_test. */
   GPR_ASSERT(body != nullptr);
   GPR_ASSERT(body_size != 0);
@@ -3567,7 +3567,7 @@ TEST(CredentialsTest, TestHttpRequestSSLCredentialsSingleton) {
 
 TEST(CredentialsTest, TestCompositeChannelCredsCompareSuccess) {
   auto* insecure_creds = grpc_insecure_credentials_create();
-  auto fake_creds = grpc_core::MakeRefCounted<fake_call_creds>();
+  auto fake_creds = MakeRefCounted<fake_call_creds>();
   auto* composite_creds_1 = grpc_composite_channel_credentials_create(
       insecure_creds, fake_creds.get(), nullptr);
   auto* composite_creds_2 = grpc_composite_channel_credentials_create(
@@ -3583,7 +3583,7 @@ TEST(CredentialsTest,
      TestCompositeChannelCredsCompareFailureDifferentChannelCreds) {
   auto* insecure_creds = grpc_insecure_credentials_create();
   auto* fake_channel_creds = grpc_fake_transport_security_credentials_create();
-  auto fake_creds = grpc_core::MakeRefCounted<fake_call_creds>();
+  auto fake_creds = MakeRefCounted<fake_call_creds>();
   auto* composite_creds_1 = grpc_composite_channel_credentials_create(
       insecure_creds, fake_creds.get(), nullptr);
   auto* composite_creds_2 = grpc_composite_channel_credentials_create(
@@ -3599,7 +3599,7 @@ TEST(CredentialsTest,
 TEST(CredentialsTest,
      TestCompositeChannelCredsCompareFailureDifferentCallCreds) {
   auto* insecure_creds = grpc_insecure_credentials_create();
-  auto fake_creds = grpc_core::MakeRefCounted<fake_call_creds>();
+  auto fake_creds = MakeRefCounted<fake_call_creds>();
   auto* md_creds = grpc_md_only_test_credentials_create("key", "value", false);
   auto* composite_creds_1 = grpc_composite_channel_credentials_create(
       insecure_creds, fake_creds.get(), nullptr);
