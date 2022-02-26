@@ -49,7 +49,7 @@ class FakeCertificateProvider : public grpc_tls_certificate_provider {
  private:
   int cmp_impl(const grpc_tls_certificate_provider* other) const override {
     // TODO(yashykt): Maybe do something better here.
-    return grpc_core::QsortCompare(
+    return QsortCompare(
         static_cast<const grpc_tls_certificate_provider*>(this), other);
   }
 };
