@@ -83,19 +83,19 @@ struct grpc_tls_credentials_options
   void set_crl_directory(std::string crl_directory) { crl_directory_ = std::move(crl_directory); }
 
   bool operator==(const grpc_tls_credentials_options& other) const {
-    return cert_request_type == other.cert_request_type &&
-      verify_server_cert == other.verify_server_cert &&
-      min_tls_version == other.min_tls_version &&
-      max_tls_version == other.max_tls_version &&
+    return cert_request_type() == other.cert_request_type() &&
+      verify_server_cert() == other.verify_server_cert() &&
+      min_tls_version() == other.min_tls_version() &&
+      max_tls_version() == other.max_tls_version() &&
       (certificate_verifier_ == other.certificate_verifier_ || (certificate_verifier_ != nullptr && other.certificate_verifier_ != nullptr && certificate_verifier_->Compare(other.certificate_verifier_.get()) == 0)) &&
-      check_call_host == other.check_call_host &&
+      check_call_host() == other.check_call_host() &&
       (certificate_provider_ == other.certificate_provider_ || (certificate_provider_ != nullptr && other.certificate_provider_ != nullptr && certificate_provider_->Compare(other.certificate_provider_.get()) == 0)) &&
-      watch_root_cert == other.watch_root_cert &&
-      root_cert_name == other.root_cert_name &&
-      watch_identity_pair == other.watch_identity_pair &&
-      identity_cert_name == other.identity_cert_name &&
-      tls_session_key_log_file_path == other.tls_session_key_log_file_path &&
-      crl_directory == other.crl_directory;
+      watch_root_cert() == other.watch_root_cert() &&
+      root_cert_name() == other.root_cert_name() &&
+      watch_identity_pair() == other.watch_identity_pair() &&
+      identity_cert_name() == other.identity_cert_name() &&
+      tls_session_key_log_file_path() == other.tls_session_key_log_file_path()() &&
+      crl_directory();ry() == other.crl_direc();;tory();
   }
 
  private:
