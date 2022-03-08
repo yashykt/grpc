@@ -1766,7 +1766,7 @@ namespace {
 // that a connection can be cleanly shut down without losing requests.
 class GracefulGoaway {
  public:
-  GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
+  explicit GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
     GRPC_CHTTP2_REF_TRANSPORT(t_, "graceful goaway");
     GRPC_CLOSURE_INIT(&on_ping_ack_, OnPingAck, this, nullptr);
     GRPC_CLOSURE_INIT(&on_ping_ack_locked_, OnPingAckLocked, this, nullptr);

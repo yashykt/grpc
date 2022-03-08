@@ -71,7 +71,7 @@ class GracefulShutdownTest : public ::testing::Test {
                                              server_args};
     // Create server
     server_ = grpc_server_create(&server_channel_args, nullptr);
-    auto* core_server = grpc_core::Server::FromC(server_);
+    auto* core_server = Server::FromC(server_);
     grpc_server_register_completion_queue(server_, cq_, nullptr);
     grpc_server_start(server_);
     fds_ = grpc_iomgr_create_endpoint_pair("fixture", nullptr);
