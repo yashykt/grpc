@@ -1006,8 +1006,8 @@ static void write_action_end_locked(void* tp, grpc_error_handle error) {
     closed = true;
   }
 
-  if (t->sent_goaway_state == GRPC_CHTTP2_GOAWAY_SEND_SCHEDULED) {
-    t->sent_goaway_state = GRPC_CHTTP2_GOAWAY_SENT;
+  if (t->sent_goaway_state == GRPC_CHTTP2_FINAL_GOAWAY_SEND_SCHEDULED) {
+    t->sent_goaway_state = GRPC_CHTTP2_FINAL_GOAWAY_SENT;
     closed = true;
     if (grpc_chttp2_stream_map_size(&t->stream_map) == 0) {
       close_transport_locked(
@@ -1757,18 +1757,90 @@ void grpc_chttp2_ack_ping(grpc_chttp2_transport* t, uint64_t id) {
   }
 }
 
+namespace {
+
+// Fire and forget (deletes itself on completion). Does a graceful shutdown by
+// sending a GOAWAY frame with the last stream id set to 2^31-1, sending a ping
+// and waiting for an ack (effective waiting for an RTT) and then sending a
+// final GOAWAY freame with an updated last stream identifier. This helps ensure
+// that a connection can be cleanly shut down without losing requests.
+class GracefulGoaway {
+ public:
+  GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
+    GRPC_CHTTP2_REF_TRANSPORT(t_, "graceful goaway");
+    GRPC_CLOSURE_INIT(&on_ping_ack_, OnPingAck, this, nullptr);
+    GRPC_CLOSURE_INIT(&on_ping_ack_locked_, OnPingAckLocked, this, nullptr);
+    grpc_chttp2_goaway_append((1u << 31) - 1, 0, grpc_empty_slice(), &t->qbuf);
+    send_ping_locked(t, nullptr, &on_ping_ack_);
+    grpc_chttp2_initiate_write(t, GRPC_CHTTP2_INITIATE_WRITE_GOAWAY_SENT);
+  }
+
+  ~GracefulGoaway() { GRPC_CHTTP2_UNREF_TRANSPORT(t_, "graceful goaway"); }
+
+  static void OnPingAck(void* arg, grpc_error_handle /* error */) {
+    auto* self = static_cast<GracefulGoaway*>(arg);
+    self->t_->combiner->Run(&self->on_ping_ack_locked_, GRPC_ERROR_NONE);
+  }
+
+  static void OnPingAckLocked(void* arg, grpc_error_handle /* error */) {
+    auto* self = static_cast<GracefulGoaway*>(arg);
+    if (self->t_->destroying ||
+        self->t_->closed_with_error != GRPC_ERROR_NONE) {
+      GRPC_CHTTP2_IF_TRACING(
+          gpr_log(GPR_INFO,
+                  "transport:%p %s peer:%s Transport already shutting down. "
+                  "Graceful GOAWAY abandoned.",
+                  self->t_, self->t_->is_client ? "CLIENT" : "SERVER",
+                  self->t_->peer_string.c_str()));
+      delete self;
+      return;
+    }
+    // Ping completed. Send final goaway.
+    GRPC_CHTTP2_IF_TRACING(
+        gpr_log(GPR_INFO,
+                "transport:%p %s peer:%s Graceful shutdown: Ping received. "
+                "Sending final GOAWAY with stream_id:%d",
+                self->t_, self->t_->is_client ? "CLIENT" : "SERVER",
+                self->t_->peer_string.c_str(), self->t_->last_new_stream_id));
+    self->t_->sent_goaway_state = GRPC_CHTTP2_FINAL_GOAWAY_SEND_SCHEDULED;
+    grpc_chttp2_goaway_append(self->t_->last_new_stream_id, 0,
+                              grpc_empty_slice(), &self->t_->qbuf);
+    grpc_chttp2_initiate_write(self->t_,
+                               GRPC_CHTTP2_INITIATE_WRITE_GOAWAY_SENT);
+    delete self;
+  }
+
+ private:
+  grpc_chttp2_transport* t_;
+  grpc_closure on_ping_ack_;
+  grpc_closure on_ping_ack_locked_;
+};
+
+}  // namespace
+
 static void send_goaway(grpc_chttp2_transport* t, grpc_error_handle error) {
-  // We want to log this irrespective of whether http tracing is enabled
-  gpr_log(GPR_DEBUG, "%s: Sending goaway err=%s", t->peer_string.c_str(),
-          grpc_error_std_string(error).c_str());
-  t->sent_goaway_state = GRPC_CHTTP2_GOAWAY_SEND_SCHEDULED;
+  gpr_log(GPR_ERROR, "sending goaway");
   grpc_http2_error_code http_error;
   std::string message;
   grpc_error_get_status(error, grpc_core::Timestamp::InfFuture(), nullptr,
                         &message, &http_error, nullptr);
-  grpc_chttp2_goaway_append(
-      t->last_new_stream_id, static_cast<uint32_t>(http_error),
-      grpc_slice_from_cpp_string(std::move(message)), &t->qbuf);
+  if (!t->is_client && http_error == GRPC_HTTP2_NO_ERROR) {
+    t->sent_goaway_state = GRPC_CHTTP2_GRACEFUL_GOAWAY;
+    // Do a graceful shutdown.
+    gpr_log(GPR_ERROR, "here %d %s", t->is_client,
+            grpc_error_std_string(error).c_str());
+    new GracefulGoaway(t);
+  } else {
+    gpr_log(GPR_ERROR, "here %d %s", t->is_client,
+            grpc_error_std_string(error).c_str());
+    // We want to log this irrespective of whether http tracing is enabled
+    gpr_log(GPR_DEBUG, "%s: Sending goaway err=%s", t->peer_string.c_str(),
+            grpc_error_std_string(error).c_str());
+    t->sent_goaway_state = GRPC_CHTTP2_FINAL_GOAWAY_SEND_SCHEDULED;
+    grpc_chttp2_goaway_append(
+        t->last_new_stream_id, static_cast<uint32_t>(http_error),
+        grpc_slice_from_cpp_string(std::move(message)), &t->qbuf);
+  }
   grpc_chttp2_initiate_write(t, GRPC_CHTTP2_INITIATE_WRITE_GOAWAY_SENT);
   GRPC_ERROR_UNREF(error);
 }
@@ -1997,7 +2069,7 @@ static void remove_stream(grpc_chttp2_transport* t, uint32_t id,
 
   if (grpc_chttp2_stream_map_size(&t->stream_map) == 0) {
     post_benign_reclaimer(t);
-    if (t->sent_goaway_state == GRPC_CHTTP2_GOAWAY_SENT) {
+    if (t->sent_goaway_state == GRPC_CHTTP2_FINAL_GOAWAY_SENT) {
       close_transport_locked(
           t, GRPC_ERROR_CREATE_REFERENCING_FROM_STATIC_STRING(
                  "Last stream closed after sending GOAWAY", &error, 1));
