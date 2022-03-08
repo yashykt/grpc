@@ -1814,6 +1814,7 @@ class GracefulGoaway {
   grpc_chttp2_transport* t_;
   grpc_closure on_ping_ack_;
   grpc_closure on_ping_ack_locked_;
+  grpc_timer timer_;
 };
 
 }  // namespace
