@@ -45,11 +45,9 @@ static void finish_write_cb(grpc_chttp2_transport* t, grpc_chttp2_stream* s,
 }
 
 static void maybe_initiate_ping(grpc_chttp2_transport* t) {
-  gpr_log(GPR_ERROR, "maybe initiate ping");
   grpc_chttp2_ping_queue* pq = &t->ping_queue;
   if (grpc_closure_list_empty(pq->lists[GRPC_CHTTP2_PCL_NEXT])) {
     /* no ping needed: wait */
-    gpr_log(GPR_ERROR, "here");
     return;
   }
   if (!grpc_closure_list_empty(pq->lists[GRPC_CHTTP2_PCL_INFLIGHT])) {
@@ -60,7 +58,6 @@ static void maybe_initiate_ping(grpc_chttp2_transport* t) {
       gpr_log(GPR_INFO, "%s: Ping delayed [%s]: already pinging",
               t->is_client ? "CLIENT" : "SERVER", t->peer_string.c_str());
     }
-    gpr_log(GPR_ERROR, "here");
     return;
   }
   if (t->is_client) {
@@ -75,7 +72,6 @@ static void maybe_initiate_ping(grpc_chttp2_transport* t) {
             t->peer_string.c_str(), t->ping_state.pings_before_data_required,
             t->ping_policy.max_pings_without_data);
       }
-      gpr_log(GPR_ERROR, "here");
       return;
     }
     // InvalidateNow to avoid getting stuck re-initializing the ping timer
@@ -118,7 +114,6 @@ static void maybe_initiate_ping(grpc_chttp2_transport* t) {
         grpc_timer_init(&t->ping_state.delayed_ping_timer, next_allowed_ping,
                         &t->retry_initiate_ping_locked);
       }
-      gpr_log(GPR_ERROR, "here");
       return;
     }
     t->ping_state.last_ping_sent_time = now;
