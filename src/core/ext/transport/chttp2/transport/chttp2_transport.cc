@@ -1775,7 +1775,7 @@ class GracefulGoaway : public grpc_core::InternallyRefCounted<GracefulGoaway> {
   }
 
  private:
-  GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
+  explicit GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
     t->sent_goaway_state = GRPC_CHTTP2_GRACEFUL_GOAWAY;
     GRPC_CHTTP2_REF_TRANSPORT(t_, "graceful goaway");
     grpc_chttp2_goaway_append((1u << 31) - 1, 0, grpc_empty_slice(), &t->qbuf);
@@ -1864,8 +1864,8 @@ static void send_goaway(grpc_chttp2_transport* t, grpc_error_handle error) {
                         &message, &http_error, nullptr);
   if (!t->is_client && http_error == GRPC_HTTP2_NO_ERROR) {
     // Do a graceful shutdown.
-            grpc_error_std_string(error).c_str());
-            GracefulGoaway::Start(t);
+    grpc_error_std_string(error).c_str();
+    GracefulGoaway::Start(t);
   } else {
     // We want to log this irrespective of whether http tracing is enabled
     gpr_log(GPR_DEBUG, "%s: Sending goaway err=%s", t->peer_string.c_str(),
