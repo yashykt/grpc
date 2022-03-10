@@ -151,11 +151,11 @@ config_setting(
 python_config_settings()
 
 # This should be updated along with build_handwritten.yaml
-g_stands_for = "gravity"  # @unused
+g_stands_for = "golazo"  # @unused
 
 core_version = "23.0.0"  # @unused
 
-version = "1.45.0-dev"  # @unused
+version = "1.46.0-dev"  # @unused
 
 GPR_PUBLIC_HDRS = [
     "include/grpc/support/alloc.h",
@@ -4154,9 +4154,12 @@ grpc_cc_library(
         "grpc_base",
         "grpc_trace",
         "json",
+        "memory_quota",
         "promise",
         "ref_counted",
         "ref_counted_ptr",
+        "resource_quota",
+        "resource_quota_trace",
         "try_seq",
         "tsi_base",
     ],
