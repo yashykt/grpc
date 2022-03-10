@@ -241,8 +241,8 @@ typedef struct {
     not receive the ping ack, it will close the transport. Int valued,
     milliseconds. */
 #define GRPC_ARG_KEEPALIVE_TIMEOUT_MS "grpc.keepalive_timeout_ms"
-/** Is it permissible to send keepalive pings without any outstanding streams.
-    Int valued, 0(false)/1(true). */
+/** Is it permissible to send keepalive pings from the client without any
+   outstanding streams. Int valued, 0(false)/1(true). */
 #define GRPC_ARG_KEEPALIVE_PERMIT_WITHOUT_CALLS \
   "grpc.keepalive_permit_without_calls"
 /** Default authority to pass if none specified on call construction. A string.
