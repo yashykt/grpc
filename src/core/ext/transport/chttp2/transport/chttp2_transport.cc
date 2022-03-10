@@ -1826,7 +1826,6 @@ class GracefulGoaway : public grpc_core::InternallyRefCounted<GracefulGoaway> {
   }
 
   static void OnPingAckLocked(void* arg, grpc_error_handle /* error */) {
-    gpr_log(GPR_ERROR, "Ping ack locked");
     auto* self = static_cast<GracefulGoaway*>(arg);
     grpc_timer_cancel(&self->timer_);
     self->MaybeSendFinalGoawayLocked();
@@ -1845,7 +1844,6 @@ class GracefulGoaway : public grpc_core::InternallyRefCounted<GracefulGoaway> {
   }
 
   static void OnTimerLocked(void* arg, grpc_error_handle /* error */) {
-    gpr_log(GPR_ERROR, "on timer locked");
     auto* self = static_cast<GracefulGoaway*>(arg);
     self->MaybeSendFinalGoawayLocked();
     self->Unref();
@@ -1860,19 +1858,15 @@ class GracefulGoaway : public grpc_core::InternallyRefCounted<GracefulGoaway> {
 }  // namespace
 
 static void send_goaway(grpc_chttp2_transport* t, grpc_error_handle error) {
-  gpr_log(GPR_ERROR, "sending goaway");
   grpc_http2_error_code http_error;
   std::string message;
   grpc_error_get_status(error, grpc_core::Timestamp::InfFuture(), nullptr,
                         &message, &http_error, nullptr);
   if (!t->is_client && http_error == GRPC_HTTP2_NO_ERROR) {
     // Do a graceful shutdown.
-    gpr_log(GPR_ERROR, "here %d %s", t->is_client,
             grpc_error_std_string(error).c_str());
-    GracefulGoaway::Start(t);
+            GracefulGoaway::Start(t);
   } else {
-    gpr_log(GPR_ERROR, "here %d %s", t->is_client,
-            grpc_error_std_string(error).c_str());
     // We want to log this irrespective of whether http tracing is enabled
     gpr_log(GPR_DEBUG, "%s: Sending goaway err=%s", t->peer_string.c_str(),
             grpc_error_std_string(error).c_str());
