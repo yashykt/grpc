@@ -1864,8 +1864,7 @@ static void send_goaway(grpc_chttp2_transport* t, grpc_error_handle error) {
                         &message, &http_error, nullptr);
   if (!t->is_client && http_error == GRPC_HTTP2_NO_ERROR) {
     // Do a graceful shutdown.
-            grpc_error_std_string(error).c_str());
-            GracefulGoaway::Start(t);
+    GracefulGoaway::Start(t);
   } else {
     // We want to log this irrespective of whether http tracing is enabled
     gpr_log(GPR_DEBUG, "%s: Sending goaway err=%s", t->peer_string.c_str(),
