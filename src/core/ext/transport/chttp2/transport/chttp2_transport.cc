@@ -1777,7 +1777,7 @@ class GracefulGoaway : public grpc_core::InternallyRefCounted<GracefulGoaway> {
   }
 
  private:
-  GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
+  explicit GracefulGoaway(grpc_chttp2_transport* t) : t_(t) {
     t->sent_goaway_state = GRPC_CHTTP2_GRACEFUL_GOAWAY;
     GRPC_CHTTP2_REF_TRANSPORT(t_, "graceful goaway");
     grpc_chttp2_goaway_append((1u << 31) - 1, 0, grpc_empty_slice(), &t->qbuf);
