@@ -16,6 +16,9 @@
  *
  */
 
+#include <string>
+
+#include <grpcpp/support/config.h>
 #include <grpcpp/support/status.h>
 
 namespace grpc {
