@@ -34,8 +34,7 @@
 #include <utility>
 #include <vector>
 
-#include <google/protobuf/repeated_ptr_field.h>
-
+#include "net/proto2/public/repeated_field.h"
 #include "opencensus/stats/stats.h"
 #include "opencensus/tags/tag_key.h"
 
