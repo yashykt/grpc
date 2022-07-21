@@ -22,6 +22,8 @@
 
 #include <string>
 
+#include "net/proto2/public/repeated_field.h"
+
 #include <grpc/support/atm.h>
 #include <grpc/support/log.h>
 
