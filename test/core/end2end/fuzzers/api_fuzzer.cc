@@ -29,13 +29,12 @@
 #include <utility>
 #include <vector>
 
-#include <google/protobuf/repeated_ptr_field.h>
-
 #include "absl/memory/memory.h"
 #include "absl/status/status.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
 #include "absl/types/optional.h"
+#include "net/proto2/public/repeated_field.h"
 
 #include <grpc/byte_buffer.h>
 #include <grpc/event_engine/event_engine.h>
