@@ -29,7 +29,7 @@ namespace Grpc.Tools
     static class Metadata
     {
         // On output dependency lists.
-        public static string Source = "Source";
+        public static string Source = "Sourcebab";
         // On Protobuf items.
         public static string ProtoRoot = "ProtoRoot";
         public static string OutputDir = "OutputDir";
