@@ -16,8 +16,14 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <stdint.h>
+
+#include <utility>
+
 #include "opencensus/exporters/stats/stackdriver/stackdriver_exporter.h"
 #include "opencensus/exporters/trace/stackdriver/stackdriver_exporter.h"
+#include "opencensus/trace/sampler.h"
+#include "opencensus/trace/trace_config.h"
 
 #include <grpcpp/opencensus.h>
 
@@ -38,7 +44,7 @@ void RegisterOpenCensusPluginForGcpObservability() {
   // TODO(yashykt): Add code for gRPC config parsing
   grpc::RegisterOpenCensusPlugin();
   grpc::RegisterOpenCensusViewsForExport();
-  // TODO(yashykt: Get probability from config
+  // TODO(unknown): (yashykt: Get probability from config
   opencensus::trace::TraceConfig::SetCurrentTraceParams(
       {kMaxAttributes, kMaxAnnotations, kMaxMessageEvents, kMaxLinks,
        opencensus::trace::ProbabilitySampler(1.0)});
