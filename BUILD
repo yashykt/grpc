@@ -7247,6 +7247,28 @@ grpc_cc_library(
     ],
 )
 
+# This is an EXPERIMENTAL target subject to change.
+grpc_cc_library(
+    name = "grpcpp_opencensus_gcp_observability_plugin",
+    srcs = [
+        "src/cpp/ext/filters/census/gcp_observability.cc",
+    ],
+    hdrs = [
+        "src/cpp/ext/filters/census/gcp_observability.h",
+    ],
+    external_deps = [
+        "opencensus-trace-stackdriver_exporter",
+        "opencensus-stats-stackdriver_exporter",
+    ],
+    language = "c++",
+    tags = ["nofixdeps"],
+    visibility = ["@grpc:public"],
+    deps = [
+        "gpr",
+        "grpc_opencensus_plugin",
+    ],
+)
+
 grpc_cc_library(
     name = "json",
     srcs = [
