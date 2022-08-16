@@ -181,6 +181,7 @@ grpc_cc_test(
         "//:resolved_address",
         "//:server_address",
         "//:time",
+        "//:useful",
         "//test/core/util:grpc_test_util",
     ],
 )

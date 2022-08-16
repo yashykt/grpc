@@ -24,7 +24,9 @@
 #include <grpc/support/time.h>
 
 #include "src/core/lib/channel/channel_args.h"
+#include "src/core/lib/gpr/useful.h"
 #include "src/core/lib/gprpp/thd.h"
+#include "src/core/lib/gprpp/time.h"
 #include "test/core/end2end/cq_verifier.h"
 #include "test/core/end2end/end2end_tests.h"
 #include "test/core/util/test_config.h"
