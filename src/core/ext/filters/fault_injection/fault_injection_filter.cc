@@ -19,7 +19,6 @@
 #include "src/core/ext/filters/fault_injection/fault_injection_filter.h"
 
 #include <stdint.h>
-#include <stdlib.h>
 
 #include <algorithm>
 #include <atomic>
@@ -27,7 +26,6 @@
 #include <string>
 #include <utility>
 
-#include "absl/random/distributions.h"
 #include "absl/status/status.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_cat.h"
