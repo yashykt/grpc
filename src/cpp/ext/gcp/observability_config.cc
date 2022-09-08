@@ -18,8 +18,21 @@
 
 #include "src/cpp/ext/gcp/observability_config.h"
 
+#include <memory>
+
+#include "absl/status/status.h"
+#include "absl/strings/string_view.h"
+
+#include <grpc/slice.h>
+#include <grpc/status.h>
+
 #include "src/core/lib/gpr/env.h"
+#include "src/core/lib/gprpp/memory.h"
+#include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/load_file.h"
+#include "src/core/lib/json/json.h"
+#include "src/core/lib/slice/slice_internal.h"
+#include "src/core/lib/slice/slice_refcount.h"
 #include "src/core/lib/transport/error_utils.h"
 
 namespace grpc {
@@ -38,9 +51,10 @@ absl::StatusOr<std::string> GetGcpObservabilityConfigContents() {
     grpc_slice contents;
     grpc_error_handle error =
         grpc_load_file(path.get(), /*add_null_terminator=*/true, &contents);
-    if (!GRPC_ERROR_IS_NONE(error))
+    if (!GRPC_ERROR_IS_NONE(error)) {
       return grpc_error_to_absl_status(grpc_error_set_int(
           error, GRPC_ERROR_INT_GRPC_STATUS, GRPC_STATUS_FAILED_PRECONDITION));
+    }
     std::string contents_str(grpc_core::StringViewFromSlice(contents));
     grpc_slice_unref_internal(contents);
     return contents_str;
