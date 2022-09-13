@@ -22,32 +22,31 @@ load(
 licenses(["reciprocal"])
 
 package(
-    default_visibility = ["//visibility:public"],
-    features = [
+    default_visibility=["//visibility:public"],
+    features=[
         "layering_check",
     ],
 )
 
 # This is an EXPERIMENTAL target subject to change.
 grpc_cc_library(
-    name = "observability",
-    srcs = [
+    name="observability",
+    srcs=[
         "observability.cc",
     ],
-    hdrs = [
+    hdrs=[
         "observability.h",
     ],
-    external_deps = [
+    external_deps=[
         "absl/status",
         "absl/status:statusor",
         "opencensus-trace",
         "opencensus-trace-stackdriver_exporter",
         "opencensus-stats-stackdriver_exporter",
     ],
-    language = "c++",
-    tags = ["nofixdeps"],
-    visibility = ["//test:__subpackages__"],
-    deps = [
+    language="c++",
+    tags=["nofixdeps"],
+    deps=[
         ":observability_config",
         "//:gpr",
         "//:grpc++_public_hdrs",
@@ -56,21 +55,21 @@ grpc_cc_library(
 )
 
 grpc_cc_library(
-    name = "observability_config",
-    srcs = [
+    name="observability_config",
+    srcs=[
         "observability_config.cc",
     ],
-    hdrs = [
+    hdrs=[
         "observability_config.h",
     ],
-    external_deps = [
+    external_deps=[
         "absl/status",
         "absl/status:statusor",
         "absl/strings",
     ],
-    language = "c++",
-    visibility = ["//test:__subpackages__"],
-    deps = [
+    language="c++",
+    visibility=["//test:__subpackages__"],
+    deps=[
         "//:gpr",
         "//:grpc_base",
         "//:grpc_public_hdrs",

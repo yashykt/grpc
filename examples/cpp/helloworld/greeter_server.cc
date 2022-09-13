@@ -30,6 +30,8 @@
 #include "helloworld.grpc.pb.h"
 #endif
 
+#include "src/cpp/ext/gcp/observability.h"
+
 using grpc::Server;
 using grpc::ServerBuilder;
 using grpc::ServerContext;
@@ -70,6 +72,11 @@ void RunServer() {
 }
 
 int main(int argc, char** argv) {
+  auto gcp_reg = grpc::experimental::GcpObservabilityInit();
+  if(!gcp_reg.ok()) {
+    std::cout << "Observability init failed";
+    return 1;
+  }
   RunServer();
 
   return 0;

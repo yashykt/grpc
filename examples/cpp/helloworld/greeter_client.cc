@@ -28,6 +28,8 @@
 #include "helloworld.grpc.pb.h"
 #endif
 
+#include "src/cpp/ext/gcp/observability.h"
+
 using grpc::Channel;
 using grpc::ClientContext;
 using grpc::Status;
@@ -72,6 +74,11 @@ class GreeterClient {
 };
 
 int main(int argc, char** argv) {
+  auto gcp_reg = grpc::experimental::GcpObservabilityInit();
+  if(!gcp_reg.ok()) {
+    std::cout << "Observability init failed";
+    return 1;
+  }
   // Instantiate the client. It requires a channel, out of which the actual RPCs
   // are created. This channel models a connection to an endpoint specified by
   // the argument "--target=" which is the only expected argument.

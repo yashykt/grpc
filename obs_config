@@ -1,0 +1,10 @@
+{
+"cloud_logging": {
+},
+"cloud_monitoring": {
+},
+"cloud_trace": {
+        "sampling_rate": 1
+},
+"project_id": "grpc-testing"
+}

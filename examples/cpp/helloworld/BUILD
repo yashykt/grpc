@@ -21,6 +21,7 @@ cc_binary(
     deps = [
         "//:grpc++",
         "//examples/protos:helloworld_cc_grpc",
+        "//src/cpp/ext/gcp:observability",
     ],
 )
 
@@ -74,6 +75,7 @@ cc_binary(
         "//:grpc++",
         "//:grpc++_reflection",
         "//examples/protos:helloworld_cc_grpc",
+        "//src/cpp/ext/gcp:observability",
     ],
 )
 
