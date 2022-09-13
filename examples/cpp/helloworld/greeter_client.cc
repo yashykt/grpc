@@ -75,7 +75,7 @@ class GreeterClient {
 
 int main(int argc, char** argv) {
   auto gcp_reg = grpc::experimental::GcpObservabilityInit();
-  if(!gcp_reg.ok()) {
+  if (!gcp_reg.ok()) {
     std::cout << "Observability init failed";
     return 1;
   }
