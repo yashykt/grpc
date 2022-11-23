@@ -23,7 +23,6 @@
 #include <cstddef>
 
 #include "absl/strings/str_split.h"
-#include "logging_sink.h"
 
 #include "src/core/lib/channel/promise_based_filter.h"
 #include "src/core/lib/config/core_configuration.h"
