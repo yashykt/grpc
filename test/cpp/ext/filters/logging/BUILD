@@ -1,3 +1,5 @@
+# gRPC Bazel BUILD file.
+#
 # Copyright 2022 gRPC authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
@@ -19,49 +21,22 @@ licenses(["notice"])
 grpc_package(name = "test/cpp/ext/gcp")
 
 grpc_cc_test(
-    name = "observability_test",
+    name = "logging_test",
     srcs = [
-        "observability_test.cc",
+        "logging_test.cc",
     ],
     external_deps = [
         "gtest",
     ],
     language = "C++",
-    uses_polling = False,
-    deps = [
-        "//:grpcpp_gcp_observability",
-        "//test/cpp/util:test_util",
-    ],
-)
-
-grpc_cc_test(
-    name = "observability_config_test",
-    srcs = [
-        "observability_config_test.cc",
-    ],
-    external_deps = [
-        "gtest",
-    ],
-    language = "C++",
-    uses_polling = False,
-    deps = [
-        "//src/cpp/ext/gcp:observability_config",
-        "//test/cpp/util:test_util",
-    ],
-)
-
-grpc_cc_test(
-    name = "observability_logging_sink_test",
-    srcs = [
-        "observability_logging_sink_test.cc",
-    ],
-    external_deps = [
-        "gtest",
-    ],
-    language = "C++",
-    uses_polling = False,
     deps = [
         "//src/cpp/ext/gcp:observability_logging_sink",
+        "//src/cpp/ext/filters/logging:logging_filter",
+        "//:grpc++",
+        "//src/proto/grpc/testing:echo_proto",
+        "//test/core/util:grpc_test_util",
+        "//test/cpp/end2end:test_service_impl",
+        "//test/cpp/util:test_config",
         "//test/cpp/util:test_util",
     ],
 )

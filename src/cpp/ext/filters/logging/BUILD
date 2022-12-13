@@ -44,3 +44,36 @@ grpc_cc_library(
         "//src/core:time",
     ],
 )
+
+grpc_cc_library(
+    name = "logging_filter",
+    srcs = [
+        "logging_filter.cc",
+    ],
+    hdrs = [
+        "logging_filter.h",
+    ],
+    external_deps = [
+        "absl/random",
+        "absl/random:distributions",
+        "absl/status:statusor",
+        "absl/strings",
+    ],
+    language = "c++",
+    visibility = [
+        "//src/cpp/ext/gcp:__subpackages__",
+        "//test:__subpackages__",
+    ],
+    deps = [
+        "logging_sink",
+        "//:config",
+        "//:gpr",
+        "//:gpr_platform",
+        "//:grpc_base",
+        "//:grpc_client_channel",
+        "//:promise",
+        "//src/core:cancel_callback",
+        "//src/core:seq",
+        "//src/core:try_concurrently",
+    ],
+)
