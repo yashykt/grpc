@@ -291,9 +291,11 @@ grpc_cc_library(
     srcs = ["test_lb_policies.cc"],
     hdrs = ["test_lb_policies.h"],
     external_deps = [
+        "absl/base:core_headers",
         "absl/status",
         "absl/status:statusor",
         "absl/strings",
+        "absl/types:optional",
         "absl/types:variant",
     ],
     deps = [
