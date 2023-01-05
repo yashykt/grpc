@@ -755,7 +755,7 @@ constexpr char kQueueOncePolicyName[] = "queue_once";
 
 class QueueOnceLoadBalancingPolicy : public ForwardingLoadBalancingPolicy {
  public:
-  QueueOnceLoadBalancingPolicy(Args args)
+  explicit QueueOnceLoadBalancingPolicy(Args args)
       : ForwardingLoadBalancingPolicy(
             std::make_unique<Helper>(
                 RefCountedPtr<QueueOnceLoadBalancingPolicy>(this)),
@@ -838,10 +838,9 @@ class QueueOnceLbConfig : public LoadBalancingPolicy::Config {
   absl::string_view name() const override { return kQueueOncePolicyName; }
 };
 
-class QueueOnceLoadBalancingPolicyFactory
-    : public grpc_core::LoadBalancingPolicyFactory {
+class QueueOnceLoadBalancingPolicyFactory : public LoadBalancingPolicyFactory {
  public:
-  grpc_core::OrphanablePtr<LoadBalancingPolicy> CreateLoadBalancingPolicy(
+  OrphanablePtr<LoadBalancingPolicy> CreateLoadBalancingPolicy(
       LoadBalancingPolicy::Args args) const override {
     return MakeOrphanable<QueueOnceLoadBalancingPolicy>(std::move(args));
   }
