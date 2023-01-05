@@ -21,9 +21,12 @@
 #include <algorithm>
 #include <memory>
 #include <string>
+#include <type_traits>
 
+#include "absl/base/thread_annotations.h"
 #include "absl/status/statusor.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "absl/types/variant.h"
 
 #include <grpc/event_engine/event_engine.h>
@@ -34,11 +37,14 @@
 #include "src/core/lib/address_utils/parse_address.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/config/core_configuration.h"
+#include "src/core/lib/gprpp/debug_location.h"
 #include "src/core/lib/gprpp/orphanable.h"
 #include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/gprpp/status_helper.h"
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/gprpp/time.h"
+#include "src/core/lib/gprpp/work_serializer.h"
+#include "src/core/lib/iomgr/closure.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/exec_ctx.h"
 #include "src/core/lib/iomgr/pollset_set.h"
@@ -757,7 +763,7 @@ constexpr char kQueueOncePolicyName[] = "queue_once";
 
 class QueueOnceLoadBalancingPolicy : public ForwardingLoadBalancingPolicy {
  public:
-  QueueOnceLoadBalancingPolicy(Args args)
+  explicit QueueOnceLoadBalancingPolicy(Args args)
       : ForwardingLoadBalancingPolicy(
             std::make_unique<Helper>(
                 RefCountedPtr<QueueOnceLoadBalancingPolicy>(this)),
@@ -774,7 +780,7 @@ class QueueOnceLoadBalancingPolicy : public ForwardingLoadBalancingPolicy {
   // An always queueing picker
   class QueueingPicker : public SubchannelPicker {
    public:
-    QueueingPicker(Helper* helper) : helper_(helper) {}
+    explicit QueueingPicker(Helper* helper) : helper_(helper) {}
 
     PickResult Pick(PickArgs /*args*/) override;
 
@@ -784,7 +790,7 @@ class QueueOnceLoadBalancingPolicy : public ForwardingLoadBalancingPolicy {
 
   class Helper : public ChannelControlHelper {
    public:
-    Helper(RefCountedPtr<QueueOnceLoadBalancingPolicy> parent)
+    explicit Helper(RefCountedPtr<QueueOnceLoadBalancingPolicy> parent)
         : parent_(std::move(parent)) {}
 
     RefCountedPtr<SubchannelInterface> CreateSubchannel(
@@ -885,10 +891,9 @@ class QueueOnceLbConfig : public LoadBalancingPolicy::Config {
   absl::string_view name() const override { return kQueueOncePolicyName; }
 };
 
-class QueueOnceLoadBalancingPolicyFactory
-    : public grpc_core::LoadBalancingPolicyFactory {
+class QueueOnceLoadBalancingPolicyFactory : public LoadBalancingPolicyFactory {
  public:
-  grpc_core::OrphanablePtr<LoadBalancingPolicy> CreateLoadBalancingPolicy(
+  OrphanablePtr<LoadBalancingPolicy> CreateLoadBalancingPolicy(
       LoadBalancingPolicy::Args args) const override {
     return MakeOrphanable<QueueOnceLoadBalancingPolicy>(std::move(args));
   }
