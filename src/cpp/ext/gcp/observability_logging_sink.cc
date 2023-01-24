@@ -27,6 +27,7 @@
 #include <google/protobuf/timestamp.pb.h>
 
 #include "absl/strings/escaping.h"
+#include "absl/strings/match.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/str_format.h"
 #include "absl/types/optional.h"
@@ -35,6 +36,7 @@
 #include "google/logging/v2/logging.grpc.pb.h"
 #include "google/logging/v2/logging.pb.h"
 
+#include <grpc/support/log.h>
 #include <grpc/support/time.h>
 #include <grpcpp/grpcpp.h>
 #include <grpcpp/security/credentials.h>
