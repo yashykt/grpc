@@ -19,13 +19,13 @@
 
 #include <grpc/support/port_platform.h>
 
+#include <map>
 #include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "absl/base/thread_annotations.h"
-#include "absl/container/flat_hash_map.h"
 #include "absl/functional/any_invocable.h"
 
 #include "src/core/lib/gprpp/sync.h"

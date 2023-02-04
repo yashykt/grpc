@@ -20,15 +20,34 @@
 
 #include "src/cpp/ext/filters/census/environment_autodetect.h"
 
-#include <deque>
+#include <string.h>
+
+#include <algorithm>
+#include <list>
 #include <memory>
+
+#include "absl/status/statusor.h"
+#include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
+
+#include <grpc/event_engine/event_engine.h>
+#include <grpc/grpc.h>
+#include <grpc/grpc_security.h>
+#include <grpc/support/log.h>
 
 #include "src/core/lib/event_engine/default_event_engine.h"
 #include "src/core/lib/gprpp/env.h"
 #include "src/core/lib/gprpp/load_file.h"
+#include "src/core/lib/gprpp/ref_counted_ptr.h"
 #include "src/core/lib/gprpp/status_helper.h"
+#include "src/core/lib/gprpp/time.h"
 #include "src/core/lib/http/httpcli.h"
+#include "src/core/lib/http/parser.h"
+#include "src/core/lib/iomgr/closure.h"
+#include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/security/credentials/credentials.h"
+#include "src/core/lib/slice/slice.h"
+#include "src/core/lib/uri/uri_parser.h"
 
 namespace grpc {
 namespace internal {
