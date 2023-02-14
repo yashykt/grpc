@@ -59,9 +59,8 @@ MetadataQuery::MetadataQuery(
         callback)
     : attribute_(std::move(attribute)), callback_(std::move(callback)) {
   GRPC_CLOSURE_INIT(&on_done_, OnDone, this, nullptr);
-  auto uri =
-      grpc_core::URI::Create("http", "metadata.google.internal.", attribute_,
-                             {} /* query params */, "" /* fragment */);
+  auto uri = URI::Create("http", "metadata.google.internal.", attribute_,
+                         {} /* query params */, "" /* fragment */);
   GPR_ASSERT(uri.ok());  // params are hardcoded
   grpc_http_request request;
   memset(&request, 0, sizeof(grpc_http_request));
@@ -71,11 +70,10 @@ MetadataQuery::MetadataQuery(
   request.hdrs = &header;
   // The http call is local. If it takes more than one sec, it is probably not
   // on GCP.
-  auto http_request = grpc_core::HttpRequest::Get(
+  auto http_request = HttpRequest::Get(
       std::move(*uri), nullptr /* channel args */, pollent, &request,
-      grpc_core::Timestamp::Now() + grpc_core::Duration::Seconds(1), &on_done_,
-      &response_,
-      grpc_core::RefCountedPtr<grpc_channel_credentials>(
+      Timestamp::Now() + Duration::Seconds(1), &on_done_, &response_,
+      RefCountedPtr<grpc_channel_credentials>(
           grpc_insecure_credentials_create()));
   http_request->Start();
 }
@@ -87,11 +85,11 @@ void MetadataQuery::OnDone(void* arg, absl::Status error) {
   std::string result;
   if (!error.ok()) {
     gpr_log(GPR_ERROR, "MetadataServer Query failed for %s: %s",
-            self->attribute_.c_str(), grpc_core::StatusToString(error).c_str());
+            self->attribute_.c_str(), StatusToString(error).c_str());
   } else if (self->response_.status != 200) {
     gpr_log(GPR_ERROR,
             "MetadataServer Query received non-200 status for %s: %s",
-            self->attribute_.c_str(), grpc_core::StatusToString(error).c_str());
+            self->attribute_.c_str(), StatusToString(error).c_str());
   } else if (self->attribute_ == kZoneAttribute) {
     absl::string_view body(self->response_.body, self->response_.body_length);
     size_t pos = result.find_last_of('/');
