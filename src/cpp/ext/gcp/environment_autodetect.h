@@ -58,7 +58,8 @@ class EnvironmentAutoDetect {
   }
 
  private:
-  friend absl::Status grpc::experimental::GcpObservabilityInit();
+  friend absl::Status grpc_event_engine::experimental
+      : experimental::GcpObservabilityInit();
 
   // GcpObservabilityInit() is responsible for setting up the singleton with the
   // project_id.
