@@ -21,18 +21,14 @@
 
 #include <grpc/support/port_platform.h>
 
-#include <stdint.h>
-
-#include "absl/status/status.h"
+#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 
-#include <grpc/support/time.h>
-
 #include "src/core/lib/channel/channel_args.h"
-#include "src/core/lib/iomgr/error.h"
+#include "src/core/lib/channel/channel_stack.h"
+#include "src/core/lib/resource_quota/arena.h"
 #include "src/core/lib/slice/slice_buffer.h"
 #include "src/core/lib/transport/metadata_batch.h"
-#include "src/core/lib/transport/transport.h"
 
 namespace grpc_core {
 
@@ -51,22 +47,23 @@ class ServerCallTracer {
   // methods should only be invoked when the metadata/message was
   // successfully received, i.e., without any error.
   virtual void RecordReceivedInitialMetadata(
-      grpc_metadata_batch* recv_initial_metadata, uint32_t flags) = 0;
+      grpc_metadata_batch* recv_initial_metadata) = 0;
   virtual void RecordReceivedMessage(const SliceBuffer& recv_message) = 0;
-  // If the call was cancelled before the recv_trailing_metadata op
-  // was started, recv_trailing_metadata and transport_stream_stats
-  // will be null.
   virtual void RecordReceivedTrailingMetadata(
-      absl::Status status, grpc_metadata_batch* recv_trailing_metadata,
-      const grpc_transport_stream_stats* transport_stream_stats) = 0;
-  virtual void RecordCancel(grpc_error_handle cancel_error) = 0;
+      grpc_metadata_batch* recv_trailing_metadata) = 0;
+  virtual void RecordCancel() = 0;
   // Should be the last API call to the object. Once invoked, the tracer
   // library is free to destroy the object.
-  virtual void RecordEnd(const gpr_timespec& latency) = 0;
+  virtual void RecordEnd(const grpc_call_final_info* final_info) = 0;
   // Records an annotation on the call attempt.
   // TODO(yashykt): If needed, extend this to attach attributes with
   // annotations.
   virtual void RecordAnnotation(absl::string_view annotation) = 0;
+
+  // These two functions allow the ServerCallTracer implementation to block an
+  // RPC while it is being setup in the background.
+  virtual bool Ready() = 0;
+  virtual void NotifyOnReady(absl::AnyInvocable<void()> callback) = 0;
 };
 
 // Interface for a factory that can create a ServerCallTracer object per server
@@ -77,7 +74,8 @@ class ServerCallTracerFactory {
 
   virtual ~ServerCallTracerFactory() {}
 
-  virtual ServerCallTracer* CreateNewServerCallTracer() = 0;
+  virtual ServerCallTracer* CreateNewServerCallTracer(
+      grpc_core::Arena* arena) = 0;
 
   // Use this method to get the server call tracer factory from channel args,
   // instead of directly fetching it with `GetObject`.

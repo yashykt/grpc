@@ -896,6 +896,18 @@ grpc_cc_library(
 )
 
 grpc_cc_library(
+    name = "promise_notification",
+    hdrs = ["lib/promise/promise_notification.h"],
+    external_deps = ["absl/base:core_headers"],
+    language = "c++",
+    deps = [
+        "activity",
+        "poll",
+        "//:gpr",
+    ],
+)
+
+grpc_cc_library(
     name = "for_each",
     external_deps = [
         "absl/status",
@@ -3589,6 +3601,33 @@ grpc_cc_library(
         "//:grpc_base",
         "//:grpc_public_hdrs",
         "//:grpc_security_base",
+    ],
+)
+
+grpc_cc_library(
+    name = "grpc_server_call_tracer_filter",
+    srcs = [
+        "ext/filters/server_call_tracer/server_call_tracer_filter.cc",
+    ],
+    external_deps = ["absl/status:statusor"],
+    language = "c++",
+    deps = [
+        "arena_promise",
+        "cancel_callback",
+        "channel_args",
+        "channel_fwd",
+        "channel_init",
+        "channel_stack_type",
+        "context",
+        "map",
+        "pipe",
+        "poll",
+        "promise_notification",
+        "seq",
+        "//:channel_stack_builder",
+        "//:config",
+        "//:gpr",
+        "//:grpc_base",
     ],
 )
 

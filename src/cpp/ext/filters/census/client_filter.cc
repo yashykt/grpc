@@ -55,6 +55,7 @@
 #include "src/core/lib/experiments/experiments.h"
 #include "src/core/lib/gprpp/sync.h"
 #include "src/core/lib/promise/context.h"
+#include "src/core/lib/promise/promise_notification.h"
 #include "src/core/lib/promise/seq.h"
 #include "src/core/lib/resource_quota/arena.h"
 #include "src/core/lib/slice/slice.h"
@@ -65,7 +66,6 @@
 #include "src/cpp/ext/filters/census/grpc_plugin.h"
 #include "src/cpp/ext/filters/census/measures.h"
 #include "src/cpp/ext/filters/census/open_census_call_tracer.h"
-#include "src/cpp/ext/filters/census/promise_notification.h"
 
 namespace grpc {
 namespace internal {
@@ -121,7 +121,7 @@ OpenCensusClientFilter::MakeCallPromise(
   };
   // If the OpenCensus plugin is not yet ready, then wait for it to be ready.
   if (!grpc::internal::OpenCensusRegistry::Get().Ready()) {
-    auto notification = std::make_shared<PromiseNotification>();
+    auto notification = std::make_shared<grpc_core::PromiseNotification>();
     grpc::internal::OpenCensusRegistry::Get().NotifyOnReady(
         [notification]() { notification->Notify(); });
     return grpc_core::Seq([notification]() { return notification->Wait(); },

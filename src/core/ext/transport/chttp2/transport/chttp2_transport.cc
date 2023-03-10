@@ -62,6 +62,7 @@
 #include "src/core/lib/channel/call_tracer.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/context.h"
+#include "src/core/lib/channel/server_call_tracer.h"
 #include "src/core/lib/debug/stats.h"
 #include "src/core/lib/debug/stats_data.h"
 #include "src/core/lib/experiments/experiments.h"
@@ -211,14 +212,26 @@ void MaybeRecordTransportAnnotation(grpc_chttp2_stream* s,
   if (!grpc_core::IsTraceRecordCallopsEnabled()) {
     return;
   }
-  grpc_core::CallTracer* call_tracer = static_cast<grpc_core::CallTracer*>(
-      static_cast<grpc_call_context_element*>(
-          s->context)[GRPC_CONTEXT_CALL_TRACER]
-          .value);
-  if (!call_tracer) {
-    return;
+  if (s->t->is_client) {
+    grpc_core::CallTracer* call_tracer = static_cast<grpc_core::CallTracer*>(
+        static_cast<grpc_call_context_element*>(
+            s->context)[GRPC_CONTEXT_CALL_TRACER]
+            .value);
+    if (!call_tracer) {
+      return;
+    }
+    call_tracer->RecordAnnotation(annotation);
+  } else {
+    grpc_core::ServerCallTracer* call_tracer =
+        static_cast<grpc_core::ServerCallTracer*>(
+            static_cast<grpc_call_context_element*>(
+                s->context)[GRPC_CONTEXT_CALL_TRACER]
+                .value);
+    if (!call_tracer) {
+      return;
+    }
+    call_tracer->RecordAnnotation(annotation);
   }
-  call_tracer->RecordAnnotation(annotation);
 }
 }  // namespace
 

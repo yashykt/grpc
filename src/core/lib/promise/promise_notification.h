@@ -1,6 +1,6 @@
 //
 //
-// Copyright 2018 gRPC authors.
+// Copyright 2023 gRPC authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,8 +16,8 @@
 //
 //
 
-#ifndef GRPC_SRC_CPP_EXT_FILTERS_CENSUS_PROMISE_NOTIFICATION_H
-#define GRPC_SRC_CPP_EXT_FILTERS_CENSUS_PROMISE_NOTIFICATION_H
+#ifndef GRPC_SRC_CORE_LIB_PROMISE_PROMISE_NOTIFICATION_H
+#define GRPC_SRC_CORE_LIB_PROMISE_PROMISE_NOTIFICATION_H
 
 #include <grpc/support/port_platform.h>
 
@@ -29,7 +29,8 @@
 #include "src/core/lib/promise/activity.h"
 #include "src/core/lib/promise/poll.h"
 
-// TODO(yashykt): Make this part of the standard promises library.
+namespace grpc_core {
+
 // Helper class for creating a promise that waits until it is notified.
 class PromiseNotification {
  public:
@@ -62,4 +63,6 @@ class PromiseNotification {
   grpc_core::Waker waker_ ABSL_GUARDED_BY(mu_);
 };
 
-#endif  // GRPC_SRC_CPP_EXT_FILTERS_CENSUS_PROMISE_NOTIFICATION_H
+}  // namespace grpc_core
+
+#endif  // GRPC_SRC_CORE_LIB_PROMISE_PROMISE_NOTIFICATION_H

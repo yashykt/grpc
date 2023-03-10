@@ -935,6 +935,7 @@ libs:
   - src/core/lib/matchers/matchers.h
   - src/core/lib/promise/activity.h
   - src/core/lib/promise/arena_promise.h
+  - src/core/lib/promise/cancel_callback.h
   - src/core/lib/promise/context.h
   - src/core/lib/promise/detail/basic_join.h
   - src/core/lib/promise/detail/basic_seq.h
@@ -952,6 +953,7 @@ libs:
   - src/core/lib/promise/pipe.h
   - src/core/lib/promise/poll.h
   - src/core/lib/promise/promise.h
+  - src/core/lib/promise/promise_notification.h
   - src/core/lib/promise/race.h
   - src/core/lib/promise/seq.h
   - src/core/lib/promise/sleep.h
@@ -1175,6 +1177,7 @@ libs:
   - src/core/ext/filters/message_size/message_size_filter.cc
   - src/core/ext/filters/rbac/rbac_filter.cc
   - src/core/ext/filters/rbac/rbac_service_config_parser.cc
+  - src/core/ext/filters/server_call_tracer/server_call_tracer_filter.cc
   - src/core/ext/filters/server_config_selector/server_config_selector_filter.cc
   - src/core/ext/filters/stateful_session/stateful_session_filter.cc
   - src/core/ext/filters/stateful_session/stateful_session_service_config_parser.cc
