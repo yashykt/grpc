@@ -21,7 +21,6 @@
 
 #include <grpc/support/port_platform.h>
 
-#include "absl/functional/any_invocable.h"
 #include "absl/strings/string_view.h"
 
 #include "src/core/lib/channel/channel_args.h"
@@ -59,15 +58,10 @@ class ServerCallTracer {
   // TODO(yashykt): If needed, extend this to attach attributes with
   // annotations.
   virtual void RecordAnnotation(absl::string_view annotation) = 0;
-
-  // These two functions allow the ServerCallTracer implementation to block an
-  // RPC while it is being setup in the background.
-  virtual bool Ready() = 0;
-  virtual void NotifyOnReady(absl::AnyInvocable<void()> callback) = 0;
 };
 
-// Interface for a factory that can create a ServerCallTracer object per server
-// call.
+// Interface for a factory that can create a ServerCallTracer object per
+// server call.
 class ServerCallTracerFactory {
  public:
   struct RawPointerChannelArgTag {};
@@ -83,8 +77,8 @@ class ServerCallTracerFactory {
 
   // Registers a global ServerCallTracerFactory that wil be used by default if
   // no corresponding channel arg was found. It is only valid to call this
-  // before grpc_init(). It is the responsibility of the caller to maintain this
-  // for the lifetime of the process.
+  // before grpc_init(). It is the responsibility of the caller to maintain
+  // this for the lifetime of the process.
   static void RegisterGlobal(ServerCallTracerFactory* factory);
 
   static absl::string_view ChannelArgName();

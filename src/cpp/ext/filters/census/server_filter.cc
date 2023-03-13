@@ -28,7 +28,6 @@
 #include <utility>
 #include <vector>
 
-#include "absl/functional/any_invocable.h"
 #include "absl/meta/type_traits.h"
 #include "absl/strings/str_cat.h"
 #include "absl/strings/string_view.h"
@@ -128,15 +127,6 @@ class OpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
 
   void RecordAnnotation(absl::string_view annotation) override {
     context_.AddSpanAnnotation(annotation, {});
-  }
-
-  bool Ready() override {
-    return grpc::internal::OpenCensusRegistry::Get().Ready();
-  }
-
-  void NotifyOnReady(absl::AnyInvocable<void()> callback) override {
-    grpc::internal::OpenCensusRegistry::Get().NotifyOnReady(
-        std::move(callback));
   }
 
  private:

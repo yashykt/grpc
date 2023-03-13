@@ -50,7 +50,6 @@ extern void RegisterServiceConfigChannelArgFilter(
 extern void RegisterExtraFilters(CoreConfiguration::Builder* builder);
 extern void RegisterResourceQuota(CoreConfiguration::Builder* builder);
 extern void FaultInjectionFilterRegister(CoreConfiguration::Builder* builder);
-extern void RegisterServerCallTracerFilter(CoreConfiguration::Builder* builder);
 extern void RegisterBackendMetricFilter(CoreConfiguration::Builder* builder);
 extern void RegisterNativeDnsResolver(CoreConfiguration::Builder* builder);
 extern void RegisterAresDnsResolver(CoreConfiguration::Builder* builder);
@@ -110,10 +109,7 @@ void BuildCoreConfiguration(CoreConfiguration::Builder* builder) {
 #ifndef GRPC_NO_RLS
   RegisterRlsLbPolicy(builder);
 #endif  // !GRPC_NO_RLS
-  // ServerCallTracerFilter needs to be registered after the HTTP
-  // (compression) filters, so that it above the compression filter in the
-  // channel stack. Run last so it gets a consistent location.
-  RegisterServerCallTracerFilter(builder);
+  // Run last so it gets a consistent location.
   // TODO(ctiller): Is this actually necessary?
   RegisterBackendMetricFilter(builder);
   RegisterSecurityFilters(builder);
