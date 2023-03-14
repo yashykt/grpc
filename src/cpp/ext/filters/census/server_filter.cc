@@ -16,13 +16,12 @@
 //
 //
 
-#include <grpc/support/port_platform.h>
-
 #include "src/cpp/ext/filters/census/server_filter.h"
 
+#include <grpc/support/port_platform.h>
 #include <stdint.h>
 #include <string.h>
-
+#include <grpcpp/opencensus.h>
 #include <algorithm>
 #include <string>
 #include <utility>
@@ -37,9 +36,6 @@
 #include "opencensus/stats/stats.h"
 #include "opencensus/tags/tag_key.h"
 #include "opencensus/tags/tag_map.h"
-
-#include <grpcpp/opencensus.h>
-
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/core/lib/channel/context.h"
 #include "src/core/lib/channel/server_call_tracer.h"
@@ -51,6 +47,7 @@
 #include "src/cpp/ext/filters/census/context.h"
 #include "src/cpp/ext/filters/census/grpc_plugin.h"
 #include "src/cpp/ext/filters/census/measures.h"
+#include "src/core/lib/iomgr/error.h"
 
 namespace grpc {
 namespace internal {
@@ -104,12 +101,14 @@ class OpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
       grpc_metadata_batch* /*send_initial_metadata*/) override {}
 
   void RecordSendTrailingMetadata(
-      grpc_metadata_batch* /*send_trailing_metadata*/) override {}
+      grpc_metadata_batch* send_trailing_metadata) override;
 
   void RecordSendMessage(
       const grpc_core::SliceBuffer& /*send_message*/) override {
     ++sent_message_count_;
   }
+  void RecordSendCompressedMessage(
+      const grpc_core::SliceBuffer& /*send_compressed_message*/) override {}
 
   void RecordReceivedInitialMetadata(
       grpc_metadata_batch* recv_initial_metadata) override;
@@ -118,10 +117,14 @@ class OpenCensusServerCallTracer : public grpc_core::ServerCallTracer {
       const grpc_core::SliceBuffer& /*recv_message*/) override {
     ++recv_message_count_;
   }
+  void RecordReceivedDecompressedMessage(
+      const grpc_core::SliceBuffer& /*recv_decompressed_message*/) override {}
   void RecordReceivedTrailingMetadata(
-      grpc_metadata_batch* recv_trailing_metadata) override;
+      grpc_metadata_batch* /*recv_trailing_metadata*/) override {}
 
-  void RecordCancel() override { elapsed_time_ = absl::Now() - start_time_; }
+  void RecordCancel(grpc_error_handle /*cancel_error*/) override {
+    elapsed_time_ = absl::Now() - start_time_;
+  }
 
   void RecordEnd(const grpc_call_final_info* final_info) override;
 
@@ -166,16 +169,16 @@ void OpenCensusServerCallTracer::RecordReceivedInitialMetadata(
   }
 }
 
-void OpenCensusServerCallTracer::RecordReceivedTrailingMetadata(
-    grpc_metadata_batch* recv_trailing_metadata) {
+void OpenCensusServerCallTracer::RecordSendTrailingMetadata(
+    grpc_metadata_batch* send_trailing_metadata) {
   // We need to record the time when the trailing metadata was sent to
   // mark the completeness of the request.
   elapsed_time_ = absl::Now() - start_time_;
-  if (OpenCensusStatsEnabled() && recv_trailing_metadata != nullptr) {
+  if (OpenCensusStatsEnabled() && send_trailing_metadata != nullptr) {
     size_t len = ServerStatsSerialize(absl::ToInt64Nanoseconds(elapsed_time_),
                                       stats_buf_, kMaxServerStatsLen);
     if (len > 0) {
-      recv_trailing_metadata->Set(
+      send_trailing_metadata->Set(
           grpc_core::GrpcServerStatsBinMetadata(),
           grpc_core::Slice::FromCopiedBuffer(stats_buf_, len));
     }

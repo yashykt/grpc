@@ -15,14 +15,10 @@
 //
 
 #include <grpc/support/port_platform.h>
-
 #include <functional>
-#include <memory>
-#include <type_traits>
 #include <utility>
 
 #include "absl/status/statusor.h"
-
 #include "src/core/lib/channel/call_finalization.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_fwd.h"
@@ -38,11 +34,10 @@
 #include "src/core/lib/promise/map.h"
 #include "src/core/lib/promise/pipe.h"
 #include "src/core/lib/promise/poll.h"
-#include "src/core/lib/promise/promise_notification.h"
-#include "src/core/lib/promise/seq.h"
 #include "src/core/lib/surface/channel_init.h"
 #include "src/core/lib/surface/channel_stack_type.h"
 #include "src/core/lib/transport/transport.h"
+#include "absl/status/status.h"
 
 namespace grpc_core {
 
@@ -84,45 +79,34 @@ ServerCallTracerFilter::MakeCallPromise(
   if (call_tracer == nullptr) {
     return next_promise_factory(std::move(call_args));
   }
-  auto continue_making_call_promise =
-      [next_promise_factory = std::move(next_promise_factory),
-       call_args = std::move(call_args), call_tracer]() mutable {
-        call_tracer->RecordReceivedInitialMetadata(
-            call_args.client_initial_metadata.get());
-        call_args.server_initial_metadata->InterceptAndMap(
-            [call_tracer](ServerMetadataHandle metadata) {
-              call_tracer->RecordSendInitialMetadata(metadata.get());
-              return metadata;
-            });
-        call_args.client_to_server_messages->InterceptAndMap(
-            [call_tracer](grpc_core::MessageHandle message) {
-              call_tracer->RecordReceivedMessage(*message->payload());
-              return message;
-            });
-        call_args.server_to_client_messages->InterceptAndMap(
-            [call_tracer](grpc_core::MessageHandle message) {
-              call_tracer->RecordSendMessage(*message->payload());
-              return message;
-            });
-        grpc_core::GetContext<grpc_core::CallFinalization>()->Add(
-            [call_tracer](const grpc_call_final_info* final_info) {
-              call_tracer->RecordEnd(final_info);
-            });
-        return grpc_core::OnCancel(
-            Map(next_promise_factory(std::move(call_args)),
-                [call_tracer](grpc_core::ServerMetadataHandle md) {
-                  call_tracer->RecordReceivedTrailingMetadata(md.get());
-                  return md;
-                }),
-            [call_tracer]() { call_tracer->RecordCancel(); });
-      };
-  if (!call_tracer->Ready()) {
-    auto notification = std::make_shared<PromiseNotification>();
-    call_tracer->NotifyOnReady([notification]() { notification->Notify(); });
-    return Seq([notification]() { return notification->Wait(); },
-               std::move(continue_making_call_promise));
-  }
-  return continue_making_call_promise();
+  call_tracer->RecordReceivedInitialMetadata(
+      call_args.client_initial_metadata.get());
+  call_args.server_initial_metadata->InterceptAndMap(
+      [call_tracer](ServerMetadataHandle metadata) {
+        call_tracer->RecordSendInitialMetadata(metadata.get());
+        return metadata;
+      });
+  // call_args.client_to_server_messages->InterceptAndMap(
+  //     [call_tracer](grpc_core::MessageHandle message) {
+  //       call_tracer->RecordReceivedMessage(*message->payload());
+  //       return message;
+  //     });
+  // call_args.server_to_client_messages->InterceptAndMap(
+  //     [call_tracer](grpc_core::MessageHandle message) {
+  //       call_tracer->RecordSendMessage(*message->payload());
+  //       return message;
+  //     });
+  grpc_core::GetContext<grpc_core::CallFinalization>()->Add(
+      [call_tracer](const grpc_call_final_info* final_info) {
+        call_tracer->RecordEnd(final_info);
+      });
+  return grpc_core::OnCancel(
+      Map(next_promise_factory(std::move(call_args)),
+          [call_tracer](grpc_core::ServerMetadataHandle md) {
+            call_tracer->RecordSendTrailingMetadata(md.get());
+            return md;
+          }),
+      [call_tracer]() { call_tracer->RecordCancel(absl::CancelledError()); });
 }
 
 }  // namespace
@@ -132,7 +116,7 @@ void RegisterServerCallTracerFilter(CoreConfiguration::Builder* builder) {
       GRPC_SERVER_CHANNEL, GRPC_CHANNEL_INIT_BUILTIN_PRIORITY,
       [](ChannelStackBuilder* builder) {
         if (!builder->channel_args().WantMinimalStack()) {
-          builder->PrependFilter(&ServerCallTracerFilter::kFilter);
+          builder->AppendFilter(&ServerCallTracerFilter::kFilter);
         }
         return true;
       });

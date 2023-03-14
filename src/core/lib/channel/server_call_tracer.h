@@ -22,42 +22,23 @@
 #include <grpc/support/port_platform.h>
 
 #include "absl/strings/string_view.h"
-
+#include "src/core/lib/channel/call_tracer.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_stack.h"
 #include "src/core/lib/resource_quota/arena.h"
-#include "src/core/lib/slice/slice_buffer.h"
 #include "src/core/lib/transport/metadata_batch.h"
 
 namespace grpc_core {
 
 // Interface for a tracer that records activities on a server call.
-class ServerCallTracer {
+class ServerCallTracer : public RpcTracerInterface {
  public:
-  virtual ~ServerCallTracer() {}
-  // Please refer to `grpc_transport_stream_op_batch_payload` for details on
-  // arguments.
-  virtual void RecordSendInitialMetadata(
-      grpc_metadata_batch* send_initial_metadata) = 0;
-  virtual void RecordSendTrailingMetadata(
-      grpc_metadata_batch* send_trailing_metadata) = 0;
-  virtual void RecordSendMessage(const SliceBuffer& send_message) = 0;
-  // The `RecordReceivedInitialMetadata()` and `RecordReceivedMessage()`
-  // methods should only be invoked when the metadata/message was
-  // successfully received, i.e., without any error.
-  virtual void RecordReceivedInitialMetadata(
-      grpc_metadata_batch* recv_initial_metadata) = 0;
-  virtual void RecordReceivedMessage(const SliceBuffer& recv_message) = 0;
+  ~ServerCallTracer() override {}
   virtual void RecordReceivedTrailingMetadata(
       grpc_metadata_batch* recv_trailing_metadata) = 0;
-  virtual void RecordCancel() = 0;
   // Should be the last API call to the object. Once invoked, the tracer
   // library is free to destroy the object.
   virtual void RecordEnd(const grpc_call_final_info* final_info) = 0;
-  // Records an annotation on the call attempt.
-  // TODO(yashykt): If needed, extend this to attach attributes with
-  // annotations.
-  virtual void RecordAnnotation(absl::string_view annotation) = 0;
 };
 
 // Interface for a factory that can create a ServerCallTracer object per
