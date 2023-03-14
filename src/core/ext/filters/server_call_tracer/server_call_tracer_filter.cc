@@ -15,10 +15,13 @@
 //
 
 #include <grpc/support/port_platform.h>
+
 #include <functional>
 #include <utility>
 
+#include "absl/status/status.h"
 #include "absl/status/statusor.h"
+
 #include "src/core/lib/channel/call_finalization.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_fwd.h"
@@ -37,12 +40,13 @@
 #include "src/core/lib/surface/channel_init.h"
 #include "src/core/lib/surface/channel_stack_type.h"
 #include "src/core/lib/transport/transport.h"
-#include "absl/status/status.h"
 
 namespace grpc_core {
 
 namespace {
 
+// TODO(yashykt): This filter is not really needed. We should be able to move
+// this to the connected filter.
 class ServerCallTracerFilter : public grpc_core::ChannelFilter {
  public:
   static const grpc_channel_filter kFilter;
@@ -75,7 +79,7 @@ ServerCallTracerFilter::MakeCallPromise(
     grpc_core::NextPromiseFactory next_promise_factory) {
   auto* call_context = grpc_core::GetContext<grpc_call_context_element>();
   auto* call_tracer = static_cast<grpc_core::ServerCallTracer*>(
-      call_context[GRPC_CONTEXT_CALL_TRACER].value);
+      call_context[GRPC_CONTEXT_RPC_TRACER].value);
   if (call_tracer == nullptr) {
     return next_promise_factory(std::move(call_args));
   }
@@ -86,16 +90,6 @@ ServerCallTracerFilter::MakeCallPromise(
         call_tracer->RecordSendInitialMetadata(metadata.get());
         return metadata;
       });
-  // call_args.client_to_server_messages->InterceptAndMap(
-  //     [call_tracer](grpc_core::MessageHandle message) {
-  //       call_tracer->RecordReceivedMessage(*message->payload());
-  //       return message;
-  //     });
-  // call_args.server_to_client_messages->InterceptAndMap(
-  //     [call_tracer](grpc_core::MessageHandle message) {
-  //       call_tracer->RecordSendMessage(*message->payload());
-  //       return message;
-  //     });
   grpc_core::GetContext<grpc_core::CallFinalization>()->Add(
       [call_tracer](const grpc_call_final_info* final_info) {
         call_tracer->RecordEnd(final_info);
