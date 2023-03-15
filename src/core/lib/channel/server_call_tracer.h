@@ -22,6 +22,7 @@
 #include <grpc/support/port_platform.h>
 
 #include "absl/strings/string_view.h"
+
 #include "src/core/lib/channel/call_tracer.h"
 #include "src/core/lib/channel/channel_args.h"
 #include "src/core/lib/channel/channel_stack.h"
@@ -49,8 +50,7 @@ class ServerCallTracerFactory {
 
   virtual ~ServerCallTracerFactory() {}
 
-  virtual ServerCallTracer* CreateNewServerCallTracer(
-      grpc_core::Arena* arena) = 0;
+  virtual ServerCallTracer* CreateNewServerCallTracer(Arena* arena) = 0;
 
   // Use this method to get the server call tracer factory from channel args,
   // instead of directly fetching it with `GetObject`.

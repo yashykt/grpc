@@ -114,8 +114,8 @@ MessageHandle CompressionFilter::CompressMessage(
     gpr_log(GPR_ERROR, "CompressMessage: len=%" PRIdPTR " alg=%d flags=%d",
             message->payload()->Length(), algorithm, message->flags());
   }
-  auto* call_context = grpc_core::GetContext<grpc_call_context_element>();
-  auto* call_tracer = static_cast<grpc_core::RpcTracerInterface*>(
+  auto* call_context = GetContext<grpc_call_context_element>();
+  auto* call_tracer = static_cast<RpcTracerInterface*>(
       call_context[GRPC_CONTEXT_RPC_TRACER].value);
   if (call_tracer != nullptr) {
     call_tracer->RecordSendMessage(*message->payload());
@@ -173,8 +173,8 @@ absl::StatusOr<MessageHandle> CompressionFilter::DecompressMessage(
             message->payload()->Length(),
             args.max_recv_message_length.value_or(-1), args.algorithm);
   }
-  auto* call_context = grpc_core::GetContext<grpc_call_context_element>();
-  auto* call_tracer = static_cast<grpc_core::RpcTracerInterface*>(
+  auto* call_context = GetContext<grpc_call_context_element>();
+  auto* call_tracer = static_cast<RpcTracerInterface*>(
       call_context[GRPC_CONTEXT_RPC_TRACER].value);
   if (call_tracer != nullptr) {
     call_tracer->RecordReceivedMessage(*message->payload());

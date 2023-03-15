@@ -47,38 +47,33 @@ namespace {
 
 // TODO(yashykt): This filter is not really needed. We should be able to move
 // this to the connected filter.
-class ServerCallTracerFilter : public grpc_core::ChannelFilter {
+class ServerCallTracerFilter : public ChannelFilter {
  public:
   static const grpc_channel_filter kFilter;
 
   static absl::StatusOr<ServerCallTracerFilter> Create(
-      const grpc_core::ChannelArgs& /*args*/,
-      grpc_core::ChannelFilter::Args /*filter_args*/);
+      const ChannelArgs& /*args*/, ChannelFilter::Args /*filter_args*/);
 
-  grpc_core::ArenaPromise<grpc_core::ServerMetadataHandle> MakeCallPromise(
-      grpc_core::CallArgs call_args,
-      grpc_core::NextPromiseFactory next_promise_factory) override;
+  ArenaPromise<ServerMetadataHandle> MakeCallPromise(
+      CallArgs call_args, NextPromiseFactory next_promise_factory) override;
 };
 
 const grpc_channel_filter ServerCallTracerFilter::kFilter =
-    grpc_core::MakePromiseBasedFilter<
-        ServerCallTracerFilter, grpc_core::FilterEndpoint::kServer,
-        grpc_core::kFilterExaminesServerInitialMetadata |
-            grpc_core::kFilterExaminesInboundMessages |
-            grpc_core::kFilterExaminesOutboundMessages>("server_call_tracer");
+    MakePromiseBasedFilter<ServerCallTracerFilter, FilterEndpoint::kServer,
+                           kFilterExaminesServerInitialMetadata |
+                               kFilterExaminesInboundMessages |
+                               kFilterExaminesOutboundMessages>(
+        "server_call_tracer");
 
 absl::StatusOr<ServerCallTracerFilter> ServerCallTracerFilter::Create(
-    const grpc_core::ChannelArgs& /*args*/,
-    grpc_core::ChannelFilter::Args /*filter_args*/) {
+    const ChannelArgs& /*args*/, ChannelFilter::Args /*filter_args*/) {
   return ServerCallTracerFilter();
 }
 
-grpc_core::ArenaPromise<grpc_core::ServerMetadataHandle>
-ServerCallTracerFilter::MakeCallPromise(
-    grpc_core::CallArgs call_args,
-    grpc_core::NextPromiseFactory next_promise_factory) {
-  auto* call_context = grpc_core::GetContext<grpc_call_context_element>();
-  auto* call_tracer = static_cast<grpc_core::ServerCallTracer*>(
+ArenaPromise<ServerMetadataHandle> ServerCallTracerFilter::MakeCallPromise(
+    CallArgs call_args, NextPromiseFactory next_promise_factory) {
+  auto* call_context = GetContext<grpc_call_context_element>();
+  auto* call_tracer = static_cast<ServerCallTracer*>(
       call_context[GRPC_CONTEXT_RPC_TRACER].value);
   if (call_tracer == nullptr) {
     return next_promise_factory(std::move(call_args));
@@ -90,13 +85,13 @@ ServerCallTracerFilter::MakeCallPromise(
         call_tracer->RecordSendInitialMetadata(metadata.get());
         return metadata;
       });
-  grpc_core::GetContext<grpc_core::CallFinalization>()->Add(
+  GetContext<CallFinalization>()->Add(
       [call_tracer](const grpc_call_final_info* final_info) {
         call_tracer->RecordEnd(final_info);
       });
-  return grpc_core::OnCancel(
+  return OnCancel(
       Map(next_promise_factory(std::move(call_args)),
-          [call_tracer](grpc_core::ServerMetadataHandle md) {
+          [call_tracer](ServerMetadataHandle md) {
             call_tracer->RecordSendTrailingMetadata(md.get());
             return md;
           }),
