@@ -516,7 +516,7 @@ def grpc_deps():
             sha256 = "",
             strip_prefix = "opentelemetry-cpp-1.9.1",
             urls = [
-                "https://github.com/open-telemetry/opentelemetry-cpp/archive/refs/tags/v1.9.1.tar.gz"
+                "https://github.com/open-telemetry/opentelemetry-cpp/archive/refs/tags/v1.9.1.tar.gz",
             ],
         )
 
