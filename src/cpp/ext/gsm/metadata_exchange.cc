@@ -16,13 +16,16 @@
 //
 //
 
+#include <grpc/support/port_platform.h>
+
 #include "src/cpp/ext/gsm/metadata_exchange.h"
 
-#include <grpc/support/port_platform.h>
 #include <stddef.h>
 
+#include "absl/meta/type_traits.h"
 #include "absl/strings/escaping.h"
 #include "absl/strings/string_view.h"
+#include "absl/types/optional.h"
 #include "google/protobuf/struct.upb.h"
 #include "upb/base/string_view.h"
 #include "upb/mem/arena.h"
