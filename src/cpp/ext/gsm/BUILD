@@ -41,9 +41,11 @@ grpc_cc_library(
     external_deps = [
         "absl/container:flat_hash_map",
         "absl/container:flat_hash_set",
+        "absl/meta:type_traits",
         "absl/status",
         "absl/status:statusor",
         "absl/strings",
+        "absl/types:optional",
         "otel/sdk/src/metrics",
         "upb_lib",
     ],

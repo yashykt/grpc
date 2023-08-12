@@ -20,12 +20,14 @@
 #define GRPC_SRC_CPP_EXT_GSM_METADATA_EXCHANGE_H
 
 #include <grpc/support/port_platform.h>
+
 #include <string>
 
 #include "absl/container/flat_hash_map.h"
+
+#include "src/core/lib/slice/slice.h"
 #include "src/core/lib/transport/metadata_batch.h"
 #include "src/cpp/ext/otel/otel_plugin.h"
-#include "src/core/lib/slice/slice.h"
 
 namespace grpc {
 namespace internal {
