@@ -7953,7 +7953,10 @@ add_executable(cel_authorization_engine_test
   src/core/ext/upb-generated/envoy/type/v3/token_bucket.upb.c
   src/core/ext/upb-generated/google/api/annotations.upb.c
   src/core/ext/upb-generated/google/api/expr/v1alpha1/checked.upb.c
+  src/core/ext/upb-generated/google/api/expr/v1alpha1/eval.upb.c
+  src/core/ext/upb-generated/google/api/expr/v1alpha1/explain.upb.c
   src/core/ext/upb-generated/google/api/expr/v1alpha1/syntax.upb.c
+  src/core/ext/upb-generated/google/api/expr/v1alpha1/value.upb.c
   src/core/ext/upb-generated/google/api/http.upb.c
   src/core/ext/upb-generated/google/api/httpbody.upb.c
   src/core/ext/upb-generated/google/protobuf/any.upb.c
@@ -7964,7 +7967,6 @@ add_executable(cel_authorization_engine_test
   src/core/ext/upb-generated/google/protobuf/timestamp.upb.c
   src/core/ext/upb-generated/google/protobuf/wrappers.upb.c
   src/core/ext/upb-generated/google/rpc/status.upb.c
-  src/core/ext/upb-generated/google/type/expr.upb.c
   src/core/ext/upb-generated/udpa/annotations/migrate.upb.c
   src/core/ext/upb-generated/udpa/annotations/security.upb.c
   src/core/ext/upb-generated/udpa/annotations/sensitive.upb.c
