@@ -19,6 +19,7 @@
 #include "src/cpp/ext/otel/otel_plugin.h"
 
 #include "absl/functional/any_invocable.h"
+#include "absl/memory/memory.h"
 #include "api/include/opentelemetry/metrics/provider.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
@@ -70,8 +71,7 @@ class OTelPluginEnd2EndTest : public ::testing::Test {
     // test. (Some measurements can get arbitrarily delayed.)
     auto meter_provider =
         std::make_shared<opentelemetry::sdk::metrics::MeterProvider>(
-            std::unique_ptr<opentelemetry::sdk::metrics::ViewRegistry>(
-                new opentelemetry::sdk::metrics::ViewRegistry()),
+            absl::make_unique<opentelemetry::sdk::metrics::ViewRegistry>(),
             opentelemetry::sdk::resource::Resource::Create({{"key", "value"}}));
     reader_.reset(new grpc::testing::MockMetricReader);
     meter_provider->AddMetricReader(reader_);
