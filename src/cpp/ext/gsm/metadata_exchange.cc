@@ -22,6 +22,7 @@
 
 #include <stddef.h>
 
+#include <algorithm>
 #include <unordered_map>
 
 #include "absl/meta/type_traits.h"
