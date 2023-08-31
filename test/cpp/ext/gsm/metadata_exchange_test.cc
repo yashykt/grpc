@@ -45,7 +45,7 @@ class TestScenario {
  public:
   enum class Type : std::uint8_t { kGke, kUnknown };
 
-  TestScenario(Type type) : type_(type) {}
+  explicit TestScenario(Type type) : type_(type) {}
 
   opentelemetry::sdk::resource::Resource GetTestResource() const {
     switch (type_) {
