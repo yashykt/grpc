@@ -16,6 +16,7 @@
 //
 //
 
+#include <limits.h>
 #include <string.h>
 
 #include "gtest/gtest.h"
