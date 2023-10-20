@@ -49,7 +49,7 @@
 namespace grpc_core {
 namespace {
 
-static Mutex* g_mu;
+Mutex* g_mu;
 
 class FakeCallTracer : public ClientCallTracer {
  public:
