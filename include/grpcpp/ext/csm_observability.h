@@ -88,6 +88,10 @@ class CsmObservabilityBuilder {
   std::unique_ptr<grpc::internal::OpenTelemetryPluginBuilderImpl> builder_;
 };
 
+class OpenTelemetryPluginOption;
+
+OpenTelemetryPluginOption* MakeCsmOpenTelemetryPluginOption();
+
 }  // namespace experimental
 }  // namespace grpc
 
