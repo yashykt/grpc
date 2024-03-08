@@ -17,11 +17,27 @@ set -ex
 
 cd "$(dirname "$0")/../../.."
 
+cd third_party/abseil-cpp
+mkdir build
+cd build
+cmake -D ABSL_BUILD_TESTING=OFF ..
+make -j"${GRPC_RUN_TESTS_JOBS}"
+make install
+
+cd ../../..
+cd third_party/opentelemetry-cpp
+mkdir build
+cd build
+cmake -DWITH_ABSEIL=ON -DBUILD_TESTING=OFF ..
+make -j"${GRPC_RUN_TESTS_JOBS}"
+make install
+
+cd ../../..
 mkdir -p cmake/build
 cd cmake/build
 
 # MSBUILD_CONFIG's values are suitable for cmake as well
-cmake -DgRPC_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE="${MSBUILD_CONFIG}" "$@" ../..
+cmake -DgRPC_ABSL_PROVIDER=pacakge -DgRPC_BUILD_TESTS=ON -DCMAKE_BUILD_TYPE="${MSBUILD_CONFIG}" "$@" ../..
 
 # GRPC_RUN_TESTS_CXX_LANGUAGE_SUFFIX will be set to either "c" or "cxx"
 make -j"${GRPC_RUN_TESTS_JOBS}" "buildtests_${GRPC_RUN_TESTS_CXX_LANGUAGE_SUFFIX}" "tools_${GRPC_RUN_TESTS_CXX_LANGUAGE_SUFFIX}"
