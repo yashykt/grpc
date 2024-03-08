@@ -20,7 +20,7 @@ cd "$(dirname "$0")/../../.."
 cd third_party/abseil-cpp
 mkdir build
 cd build
-cmake -D ABSL_BUILD_TESTING=OFF ..
+cmake -DABSL_BUILD_TESTING=OFF ..
 make -j"${GRPC_RUN_TESTS_JOBS}"
 make install
 
