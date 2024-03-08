@@ -63,9 +63,7 @@ class ExternalProtoLibrary:
         http_archive in Bazel.
     """
 
-    def __init__(
-        self, destination, proto_prefix, urls=None, hash="", strip_prefix=""
-    ):
+    def __init__(self, destination, proto_prefix, urls=None, hash="", strip_prefix=""):
         self.destination = destination
         self.proto_prefix = proto_prefix
         if urls is None:
@@ -289,9 +287,7 @@ def _extract_sources(bazel_rule: BuildMetadata) -> List[str]:
     return list(sorted(result))
 
 
-def _extract_deps(
-    bazel_rule: BuildMetadata, bazel_rules: BuildDict
-) -> List[str]:
+def _extract_deps(bazel_rule: BuildMetadata, bazel_rules: BuildDict) -> List[str]:
     """Gets list of deps from from a bazel rule"""
     deps = set(bazel_rule["deps"])
     for src in bazel_rule["srcs"]:
@@ -422,9 +418,7 @@ def _compute_transitive_metadata(
                     _compute_transitive_metadata(
                         dep, bazel_rules, bazel_label_to_dep_name
                     )
-                transitive_deps.update(
-                    bazel_rules[dep].get("_TRANSITIVE_DEPS", [])
-                )
+                transitive_deps.update(bazel_rules[dep].get("_TRANSITIVE_DEPS", []))
                 collapsed_deps.update(
                     collapsed_deps, bazel_rules[dep].get("_COLLAPSED_DEPS", [])
                 )
@@ -433,9 +427,7 @@ def _compute_transitive_metadata(
         # This dep is a public target, add it as a dependency
         if dep in bazel_label_to_dep_name:
             transitive_deps.update([bazel_label_to_dep_name[dep]])
-            collapsed_deps.update(
-                collapsed_deps, [bazel_label_to_dep_name[dep]]
-            )
+            collapsed_deps.update(collapsed_deps, [bazel_label_to_dep_name[dep]])
             # Add all the transitive deps of our every public dep to exclude
             # list since we want to avoid building sources that are already
             # built by our dependencies
@@ -486,18 +478,14 @@ def _compute_transitive_metadata(
                 collapsed_public_headers.update(
                     _extract_public_headers(bazel_rules[dep])
                 )
-                collapsed_headers.update(
-                    _extract_nonpublic_headers(bazel_rules[dep])
-                )
+                collapsed_headers.update(_extract_nonpublic_headers(bazel_rules[dep]))
     # This item is a "visited" flag
     bazel_rule["_PROCESSING_DONE"] = True
     # Following items are described in the docstinrg.
     bazel_rule["_TRANSITIVE_DEPS"] = list(sorted(transitive_deps))
     bazel_rule["_COLLAPSED_DEPS"] = list(sorted(collapsed_deps))
     bazel_rule["_COLLAPSED_SRCS"] = list(sorted(collapsed_srcs))
-    bazel_rule["_COLLAPSED_PUBLIC_HEADERS"] = list(
-        sorted(collapsed_public_headers)
-    )
+    bazel_rule["_COLLAPSED_PUBLIC_HEADERS"] = list(sorted(collapsed_public_headers))
     bazel_rule["_COLLAPSED_HEADERS"] = list(sorted(collapsed_headers))
     bazel_rule["_EXCLUDE_DEPS"] = list(sorted(exclude_deps))
 
@@ -610,9 +598,7 @@ def _expand_upb_proto_library_rules(bazel_rules):
             protos = _get_transitive_protos(bazel_rules, deps[0])
             if len(protos) == 0:
                 raise Exception(
-                    'upb rule "{0}" should have at least one proto file.'.format(
-                        name
-                    )
+                    'upb rule "{0}" should have at least one proto file.'.format(name)
                 )
             srcs = []
             hdrs = []
@@ -676,9 +662,7 @@ def _patch_grpc_proto_library_rules(bazel_rules):
 def _patch_descriptor_upb_proto_library(bazel_rules):
     # The upb's descriptor_upb_proto library doesn't reference the generated descriptor.proto
     # sources explicitly, so we add them manually.
-    bazel_rule = bazel_rules.get(
-        "@com_google_protobuf//upb:descriptor_upb_proto", None
-    )
+    bazel_rule = bazel_rules.get("@com_google_protobuf//upb:descriptor_upb_proto", None)
     if bazel_rule:
         bazel_rule["srcs"].append(
             ":src/core/ext/upb-gen/google/protobuf/descriptor.upb_minitable.c"
@@ -761,26 +745,16 @@ def _convert_to_build_yaml_like(lib_dict: BuildMetadata) -> BuildYaml:
 
     # get rid of temporary private fields prefixed with "_" and some other useless fields
     for lib in lib_list:
-        for field_to_remove in [
-            k for k in list(lib.keys()) if k.startswith("_")
-        ]:
+        for field_to_remove in [k for k in list(lib.keys()) if k.startswith("_")]:
             lib.pop(field_to_remove, None)
     for target in target_list:
-        for field_to_remove in [
-            k for k in list(target.keys()) if k.startswith("_")
-        ]:
+        for field_to_remove in [k for k in list(target.keys()) if k.startswith("_")]:
             target.pop(field_to_remove, None)
-        target.pop(
-            "public_headers", None
-        )  # public headers make no sense for targets
+        target.pop("public_headers", None)  # public headers make no sense for targets
     for test in test_list:
-        for field_to_remove in [
-            k for k in list(test.keys()) if k.startswith("_")
-        ]:
+        for field_to_remove in [k for k in list(test.keys()) if k.startswith("_")]:
             test.pop(field_to_remove, None)
-        test.pop(
-            "public_headers", None
-        )  # public headers make no sense for tests
+        test.pop("public_headers", None)  # public headers make no sense for tests
 
     build_yaml_like = {
         "libs": lib_list,
@@ -809,15 +783,9 @@ def _exclude_unwanted_cc_tests(tests: List[str]) -> List[str]:
     # most qps tests are autogenerated, we are fine without them
     tests = [test for test in tests if not test.startswith("test/cpp/qps:")]
     # microbenchmarks aren't needed for checking correctness
+    tests = [test for test in tests if not test.startswith("test/cpp/microbenchmarks:")]
     tests = [
-        test
-        for test in tests
-        if not test.startswith("test/cpp/microbenchmarks:")
-    ]
-    tests = [
-        test
-        for test in tests
-        if not test.startswith("test/core/promise/benchmark:")
+        test for test in tests if not test.startswith("test/core/promise/benchmark:")
     ]
 
     # we have trouble with census dependency outside of bazel
@@ -835,8 +803,7 @@ def _exclude_unwanted_cc_tests(tests: List[str]) -> List[str]:
     tests = [
         test
         for test in tests
-        if not test.startswith("test/cpp/ext/otel:")
-        and not test.startswith("test/cpp/ext/csm:")
+        if not test.startswith("test/cpp/ext/csm:")
         and not test.startswith("test/cpp/interop:xds_interop")
     ]
 
@@ -844,16 +811,12 @@ def _exclude_unwanted_cc_tests(tests: List[str]) -> List[str]:
     tests = [
         test
         for test in tests
-        if not test.startswith(
-            "test/cpp/end2end:server_load_reporting_end2end_test"
-        )
+        if not test.startswith("test/cpp/end2end:server_load_reporting_end2end_test")
     ]
     tests = [
         test
         for test in tests
-        if not test.startswith(
-            "test/cpp/server/load_reporter:lb_load_reporter_test"
-        )
+        if not test.startswith("test/cpp/server/load_reporter:lb_load_reporter_test")
     ]
 
     # The test uses --running_under_bazel cmdline argument
@@ -961,9 +924,7 @@ def _generate_build_extra_metadata_for_tests(
             platforms = []
             # assume all tests are compatible with linux and posix
             platforms.append("linux")
-            platforms.append(
-                "posix"
-            )  # there is no posix-specific tag in bazel BUILD
+            platforms.append("posix")  # there is no posix-specific tag in bazel BUILD
             if "no_mac" not in bazel_tags:
                 platforms.append("mac")
             if "no_windows" not in bazel_tags:
@@ -1345,9 +1306,7 @@ _BAZEL_DEPS_QUERIES = [
 #               ... }
 bazel_rules = {}
 for query in _BAZEL_DEPS_QUERIES:
-    bazel_rules.update(
-        _extract_rules_from_bazel_xml(_bazel_query_xml_tree(query))
-    )
+    bazel_rules.update(_extract_rules_from_bazel_xml(_bazel_query_xml_tree(query)))
 
 # Step 1.5: The sources for UPB protos are pre-generated, so we want
 # to expand the UPB proto library bazel rules into the generated
@@ -1415,14 +1374,10 @@ if "@com_google_protobuf//third_party/utf8_range:utf8_range" not in bazel_rules:
     md = _BUILD_EXTRA_METADATA[
         "@com_google_protobuf//third_party/utf8_range:utf8_range"
     ]
-    del _BUILD_EXTRA_METADATA[
-        "@com_google_protobuf//third_party/utf8_range:utf8_range"
-    ]
+    del _BUILD_EXTRA_METADATA["@com_google_protobuf//third_party/utf8_range:utf8_range"]
     _BUILD_EXTRA_METADATA["@utf8_range//:utf8_range"] = md
 all_extra_metadata.update(_BUILD_EXTRA_METADATA)
-all_extra_metadata.update(
-    _generate_build_extra_metadata_for_tests(tests, bazel_rules)
-)
+all_extra_metadata.update(_generate_build_extra_metadata_for_tests(tests, bazel_rules))
 
 # Step 4: Compute the build metadata that will be used in the final build.yaml.
 # The final build metadata includes transitive dependencies, and sources/headers
@@ -1492,9 +1447,7 @@ build_yaml_like = _convert_to_build_yaml_like(all_targets_dict)
 # to download these libraries if not existed. Even if the download failed, it
 # will be a soft error that doesn't block existing target from successfully
 # built.
-build_yaml_like[
-    "external_proto_libraries"
-] = _generate_external_proto_libraries()
+build_yaml_like["external_proto_libraries"] = _generate_external_proto_libraries()
 
 # detect and report some suspicious situations we've seen before
 _detect_and_print_issues(build_yaml_like)
@@ -1505,8 +1458,6 @@ _detect_and_print_issues(build_yaml_like)
 # https://github.com/grpc/grpc/blob/master/templates/README.md
 # TODO(jtattermusch): The "cleanup" function is taken from the legacy
 # build system (which used build.yaml) and can be eventually removed.
-build_yaml_string = build_cleaner.cleaned_build_yaml_dict_as_string(
-    build_yaml_like
-)
+build_yaml_string = build_cleaner.cleaned_build_yaml_dict_as_string(build_yaml_like)
 with open("build_autogenerated.yaml", "w") as file:
     file.write(build_yaml_string)
