@@ -271,7 +271,7 @@ class ClientChannelFilter::FilterBasedCallData
     gpr_log(GPR_ERROR, "here");
     const Timestamp per_method_deadline = call_start_time_ + timeout;
     gpr_log(GPR_ERROR, "now: %s, deadline: %s, per_method: %s cycle counter:%s",
-            grpc_core::Timestamp::Now().ToString().c_str(),
+            Timestamp::Now().ToString().c_str(),
             deadline_.ToString().c_str(),
             per_method_deadline.ToString().c_str(),
             call_start_time_.ToString().c_str());
