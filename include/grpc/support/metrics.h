@@ -26,9 +26,9 @@ namespace experimental {
 // plugins.
 class StatsPluginChannelScope {
  public:
-  StatsPluginChannelScope(absl::string_view target,
-                          absl::string_view default_authority)
-      : target_(target), default_authority_(default_authority) {}
+  StatsPluginChannelScope(std::string target,
+                          std::string default_authority)
+      : target_(std::move(target)), default_authority_(std::move(default_authority)) {}
 
   /// Returns the target used for creating the channel in the canonical form.
   /// (Canonicalized target definition -
@@ -41,8 +41,8 @@ class StatsPluginChannelScope {
   // Disable copy constructor and copy-assignment operator.
   StatsPluginChannelScope(const StatsPluginChannelScope&) = delete;
   StatsPluginChannelScope& operator=(const StatsPluginChannelScope&) = delete;
-  absl::string_view target_;
-  absl::string_view default_authority_;
+  std::string target_;
+  std::string default_authority_;
 };
 
 }  // namespace experimental
