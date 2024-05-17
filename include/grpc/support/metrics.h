@@ -26,9 +26,9 @@ namespace experimental {
 // plugins.
 class StatsPluginChannelScope {
  public:
-  StatsPluginChannelScope(std::string target,
-                          std::string default_authority)
-      : target_(std::move(target)), default_authority_(std::move(default_authority)) {}
+  StatsPluginChannelScope(std::string target, std::string default_authority)
+      : target_(std::move(target)),
+        default_authority_(std::move(default_authority)) {}
 
   /// Returns the target used for creating the channel in the canonical form.
   /// (Canonicalized target definition -
