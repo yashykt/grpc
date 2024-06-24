@@ -129,6 +129,10 @@ class GreeterClient {
 
 // Logic and data behind the server's behavior.
 class GreeterServiceImpl final : public Greeter::CallbackService {
+ public:
+  GreeterServiceImpl(absl::AnyInvocable<grpc::Status()> fault_injector)
+      : fault_injector_(std::move(fault_injector)) {}
+
   ServerUnaryReactor* SayHello(CallbackServerContext* context,
                                const HelloRequest* request,
                                HelloReply* reply) override {
@@ -136,16 +140,19 @@ class GreeterServiceImpl final : public Greeter::CallbackService {
     reply->set_message(prefix + request->name());
 
     ServerUnaryReactor* reactor = context->DefaultReactor();
-    reactor->Finish(Status::OK);
+    reactor->Finish(fault_injector_());
     return reactor;
   }
+
+ private:
+  absl::AnyInvocable<grpc::Status()> fault_injector_;
 };
 
 }  // namespace
 
-void RunServer(uint16_t port) {
+void RunServer(uint16_t port, absl::AnyInvocable<grpc::Status()> func) {
   std::string server_address = absl::StrFormat("0.0.0.0:%d", port);
-  GreeterServiceImpl service;
+  GreeterServiceImpl service(std::move(func));
 
   grpc::EnableDefaultHealthCheckService(true);
   grpc::reflection::InitProtoReflectionServerBuilderPlugin();
@@ -176,6 +183,15 @@ void RunClient(const std::string& target_str) {
     std::string user("world");
     std::string reply = greeter.SayHello(user);
     std::cout << "Greeter received: " << reply << std::endl;
-    std::this_thread::sleep_for(std::chrono::seconds(1));
+    auto cs = absl::LocalTimeZone().At(absl::Now()).cs;
+    auto weekday = absl::GetWeekday(cs);
+    // Sleep more during off-business hours
+    if (cs.hour() >= 8 && cs.hour() <= 17 &&
+        weekday != absl::Weekday::saturday &&
+        weekday != absl::Weekday::sunday) {
+      std::this_thread::sleep_for(std::chrono::seconds(1));
+    } else {
+      std::this_thread::sleep_for(std::chrono::seconds(60));
+    }
   }
 }

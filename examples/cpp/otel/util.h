@@ -21,13 +21,16 @@
 
 #include <string>
 
+#include "absl/functional/any_invocable.h"
 #include "opentelemetry/sdk/metrics/meter_provider.h"
+
+#include <grpcpp/grpcpp.h>
 
 // Helper function that adds view for gRPC latency instrument \a name with unit
 // \a unit with bucket boundaries that are more useful for RPCs.
 void AddLatencyView(opentelemetry::sdk::metrics::MeterProvider* provider,
                     const std::string& name, const std::string& unit);
 
-void RunServer(uint16_t port);
+void RunServer(uint16_t port, absl::AnyInvocable<grpc::Status()>);
 void RunClient(const std::string& target_str);
 #endif  // GRPCPP_EXAMPLES_CPP_OTEL_UTIL_H
