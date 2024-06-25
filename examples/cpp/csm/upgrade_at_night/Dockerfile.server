@@ -22,8 +22,8 @@ RUN ln -s /usr/bin/python3 /usr/bin/python
 RUN mkdir /artifacts
 
 COPY . .
-RUN tools/bazel build //examples/cpp/csm/observability:csm_greeter_server
-RUN cp -rL /workdir/bazel-bin/examples/cpp/csm/observability/csm_greeter_server /artifacts/
+RUN tools/bazel build //examples/cpp/csm/upgrade_at_night:csm_greeter_server
+RUN cp -rL /workdir/bazel-bin/examples/cpp/csm/upgrade_at_night/csm_greeter_server /artifacts/
 
 FROM python:3.9-slim-bookworm
 
