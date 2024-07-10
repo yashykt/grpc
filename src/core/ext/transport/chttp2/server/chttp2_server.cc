@@ -169,7 +169,7 @@ class Chttp2ServerListener : public Server::ListenerInterface {
     RefCountedPtr<Chttp2ServerListener> listener_;
   };
 
-  class ActiveConnection : public InternallyRefCounted<ActiveConnection> {
+  class ActiveConnection : public LogicalConnection {
    public:
     class HandshakingState : public InternallyRefCounted<HandshakingState> {
      public:
@@ -219,7 +219,7 @@ class Chttp2ServerListener : public Server::ListenerInterface {
 
     // Needed to be able to grab an external ref in
     // Chttp2ServerListener::OnAccept()
-    using InternallyRefCounted<ActiveConnection>::Ref;
+    using InternallyRefCounted<LogicalConnection>::Ref;
 
    private:
     static void OnClose(void* arg, grpc_error_handle error);
@@ -560,7 +560,9 @@ Chttp2ServerListener::ActiveConnection::ActiveConnection(
     EventEngine* event_engine, const ChannelArgs& args,
     MemoryOwner memory_owner)
     : handshaking_state_(memory_owner.MakeOrphanable<HandshakingState>(
-          Ref(), accepting_pollset, std::move(acceptor), args)),
+          RefCountedPtr<ActiveConnection>(
+              static_cast<ActiveConnection*>(Ref().release())),
+          accepting_pollset, std::move(acceptor), args)),
       event_engine_(event_engine) {
   GRPC_CLOSURE_INIT(&on_close_, ActiveConnection::OnClose, this,
                     grpc_schedule_on_exec_ctx);
@@ -596,7 +598,10 @@ void Chttp2ServerListener::ActiveConnection::SendGoAway() {
                        .GetDurationFromIntMillis(
                            GRPC_ARG_SERVER_CONFIG_CHANGE_DRAIN_GRACE_TIME_MS)
                        .value_or(Duration::Minutes(10))),
-          [self = Ref(DEBUG_LOCATION, "drain_grace_timer")]() mutable {
+          [self =
+               RefCountedPtr<ActiveConnection>(static_cast<ActiveConnection*>(
+                   Ref(DEBUG_LOCATION, "drain_grace_timer")
+                       .release()))]() mutable {
             ApplicationCallbackExecCtx callback_exec_ctx;
             ExecCtx exec_ctx;
             self->OnDrainGraceTimeExpiry();
@@ -862,7 +867,9 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
       std::move(memory_owner));
   // Hold a ref to connection to allow starting handshake outside the
   // critical region
-  RefCountedPtr<ActiveConnection> connection_ref = connection->Ref();
+  RefCountedPtr<ActiveConnection> connection_ref =
+      RefCountedPtr<ActiveConnection>(
+          static_cast<ActiveConnection*>(connection->Ref().release()));
   RefCountedPtr<Chttp2ServerListener> listener_ref;
   {
     MutexLock lock(&self->mu_);
