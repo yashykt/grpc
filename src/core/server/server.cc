@@ -951,6 +951,23 @@ void Server::Start() {
   starting_cv_.Signal();
 }
 
+absl::Status Server::AddLogicalConnection(
+    OrphanablePtr<LogicalConnection> connection) {
+  RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
+      connection_manager;
+  {
+    MutexLock lock(&mu_global_);
+    if (!is_serving_) {
+      return absl::UnavailableError("Not serving");
+    }
+    connection_manager = connection_manager_;
+  }
+  if (config_fetcher_ != nullptr && connection_manager == nullptr) {
+    return absl::UnavailableError("Connection manager not available");
+  }
+  return absl::OkStatus();
+}
+
 grpc_error_handle Server::SetupTransport(
     Transport* transport, grpc_pollset* accepting_pollset,
     const ChannelArgs& args,

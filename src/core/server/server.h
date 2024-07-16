@@ -75,6 +75,38 @@
 #define GRPC_ARG_SERVER_MAX_PENDING_REQUESTS_HARD_LIMIT \
   "grpc.server.max_pending_requests_hard_limit"
 
+struct grpc_server_config_fetcher {
+ public:
+  class ConnectionManager
+      : public grpc_core::DualRefCounted<ConnectionManager> {
+   public:
+    // Ownership of \a args is transfered.
+    virtual absl::StatusOr<grpc_core::ChannelArgs>
+    UpdateChannelArgsForConnection(const grpc_core::ChannelArgs& args,
+                                   grpc_endpoint* tcp) = 0;
+  };
+
+  class WatcherInterface {
+   public:
+    virtual ~WatcherInterface() = default;
+    // UpdateConnectionManager() is invoked by the config fetcher when a new
+    // config is available. Implementations should update the connection manager
+    // and start serving if not already serving.
+    virtual void UpdateConnectionManager(
+        grpc_core::RefCountedPtr<ConnectionManager> manager) = 0;
+    // Implementations should stop serving when this is called. Serving should
+    // only resume when UpdateConfig() is invoked.
+    virtual void StopServing() = 0;
+  };
+
+  virtual ~grpc_server_config_fetcher() = default;
+
+  virtual void StartWatch(std::string listening_address,
+                          std::unique_ptr<WatcherInterface> watcher) = 0;
+  virtual void CancelWatch(WatcherInterface* watcher) = 0;
+  virtual grpc_pollset_set* interested_parties() = 0;
+};
+
 namespace grpc_core {
 namespace experimental {
 class PassiveListenerImpl;
@@ -157,7 +189,9 @@ class Server : public ServerInterface,
   }
 
   void set_config_fetcher(
-      std::unique_ptr<grpc_server_config_fetcher> config_fetcher);
+      std::unique_ptr<grpc_server_config_fetcher> config_fetcher) {
+    config_fetcher_ = std::move(config_fetcher);
+  }
 
   bool HasOpenConnections() ABSL_LOCKS_EXCLUDED(mu_global_);
 
@@ -169,13 +203,17 @@ class Server : public ServerInterface,
   // Starts listening for connections.
   void Start() ABSL_LOCKS_EXCLUDED(mu_global_);
 
+  // Adds a LogicalConnection to the server
+  absl::Status AddLogicalConnection(OrphanablePtr<LogicalConnection> connection)
+      ABSL_LOCKS_EXCLUDED(mu_global_);
   // Sets up a transport.  Creates a channel stack and binds the transport to
   // the server.  Called from the listener when a new connection is accepted.
   // Takes ownership of a ref on resource_user from the caller.
   grpc_error_handle SetupTransport(
       Transport* transport, grpc_pollset* accepting_pollset,
       const ChannelArgs& args,
-      const RefCountedPtr<channelz::SocketNode>& socket_node);
+      const RefCountedPtr<channelz::SocketNode>& socket_node)
+      ABSL_LOCKS_EXCLUDED(mu_global_);
 
   void RegisterCompletionQueue(grpc_completion_queue* cq);
 
@@ -517,6 +555,11 @@ class Server : public ServerInterface,
   std::list<ChannelData*> channels_;
   absl::flat_hash_set<OrphanablePtr<ServerTransport>> connections_
       ABSL_GUARDED_BY(mu_global_);
+  absl::flat_hash_set<OrphanablePtr<LogicalConnection>> logical_connections_
+      ABSL_GUARDED_BY(mu_global_);
+  bool is_serving_ ABSL_GUARDED_BY(mu_global_);
+  RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
+      connection_manager_ ABSL_GUARDED_BY(mu_global_);
   size_t connections_open_ ABSL_GUARDED_BY(mu_global_) = 0;
 
   std::list<Listener> listeners_;
@@ -525,47 +568,6 @@ class Server : public ServerInterface,
   // The last time we printed a shutdown progress message.
   gpr_timespec last_shutdown_message_time_;
 };
-
-}  // namespace grpc_core
-
-struct grpc_server_config_fetcher {
- public:
-  class ConnectionManager
-      : public grpc_core::DualRefCounted<ConnectionManager> {
-   public:
-    // Ownership of \a args is transfered.
-    virtual absl::StatusOr<grpc_core::ChannelArgs>
-    UpdateChannelArgsForConnection(const grpc_core::ChannelArgs& args,
-                                   grpc_endpoint* tcp) = 0;
-  };
-
-  class WatcherInterface {
-   public:
-    virtual ~WatcherInterface() = default;
-    // UpdateConnectionManager() is invoked by the config fetcher when a new
-    // config is available. Implementations should update the connection manager
-    // and start serving if not already serving.
-    virtual void UpdateConnectionManager(
-        grpc_core::RefCountedPtr<ConnectionManager> manager) = 0;
-    // Implementations should stop serving when this is called. Serving should
-    // only resume when UpdateConfig() is invoked.
-    virtual void StopServing() = 0;
-  };
-
-  virtual ~grpc_server_config_fetcher() = default;
-
-  virtual void StartWatch(std::string listening_address,
-                          std::unique_ptr<WatcherInterface> watcher) = 0;
-  virtual void CancelWatch(WatcherInterface* watcher) = 0;
-  virtual grpc_pollset_set* interested_parties() = 0;
-};
-
-namespace grpc_core {
-
-inline void Server::set_config_fetcher(
-    std::unique_ptr<grpc_server_config_fetcher> config_fetcher) {
-  config_fetcher_ = std::move(config_fetcher);
-}
 
 }  // namespace grpc_core
 
