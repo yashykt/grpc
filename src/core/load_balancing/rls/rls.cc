@@ -1439,6 +1439,7 @@ void RlsLb::Cache::ResetAllBackoff() {
 
 std::vector<OrphanablePtr<RlsLb::Cache::Entry>> RlsLb::Cache::Shutdown() {
   std::vector<OrphanablePtr<Entry>> entries_to_delete;
+  entries_to_delete.reserve(map_.size());
   for (auto& entry : map_) {
     entries_to_delete.push_back(std::move(entry.second));
   }
