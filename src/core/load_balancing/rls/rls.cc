@@ -397,7 +397,7 @@ class RlsLb final : public LoadBalancingPolicy {
     };
 
     // Note: We are forced to disable lock analysis here because
-    // Orphan() is called by Unref() which is called by RefCountedPtr<>, which
+    // Orphaned() is called by Unref() which is called by RefCountedPtr<>, which
     // cannot have lock annotations for this particular caller.
     void Orphaned() override ABSL_NO_THREAD_SAFETY_ANALYSIS;
 
@@ -575,13 +575,16 @@ class RlsLb final : public LoadBalancingPolicy {
     // the caller. Otherwise, the entry found is returned to the caller. The
     // entry returned to the user is considered recently used and its order in
     // the LRU list of the cache is updated.
-    Entry* FindOrInsert(const RequestKey& key)
+    Entry* FindOrInsert(const RequestKey& key,
+                        std::vector<OrphanablePtr<Entry>>* entries_to_delete)
         ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
 
     // Resizes the cache. If the new cache size is greater than the current size
     // of the cache, do nothing. Otherwise, evict the oldest entries that
     // exceed the new size limit of the cache.
-    void Resize(size_t bytes) ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
+    void Resize(size_t bytes,
+                std::vector<OrphanablePtr<Entry>>* entries_to_delete)
+        ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
 
     // Resets backoff of all the cache entries.
     void ResetAllBackoff() ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
@@ -604,7 +607,8 @@ class RlsLb final : public LoadBalancingPolicy {
 
     // Evicts oversized cache elements when the current size is greater than
     // the specified limit.
-    void MaybeShrinkSize(size_t bytes)
+    void MaybeShrinkSize(size_t bytes,
+                         std::vector<OrphanablePtr<Entry>>* entries_to_delete)
         ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
 
     RlsLb* lb_policy_;
@@ -1397,12 +1401,15 @@ RlsLb::Cache::Entry* RlsLb::Cache::Find(const RequestKey& key) {
   return it->second.get();
 }
 
-RlsLb::Cache::Entry* RlsLb::Cache::FindOrInsert(const RequestKey& key) {
+RlsLb::Cache::Entry* RlsLb::Cache::FindOrInsert(
+    const RequestKey& key,
+    std::vector<OrphanablePtr<Entry>>* entries_to_delete) {
   auto it = map_.find(key);
   // If not found, create new entry.
   if (it == map_.end()) {
     size_t entry_size = EntrySizeForKey(key);
-    MaybeShrinkSize(size_limit_ - std::min(size_limit_, entry_size));
+    MaybeShrinkSize(size_limit_ - std::min(size_limit_, entry_size),
+                    entries_to_delete);
     Entry* entry = new Entry(
         lb_policy_->RefAsSubclass<RlsLb>(DEBUG_LOCATION, "CacheEntry"), key);
     map_.emplace(key, OrphanablePtr<Entry>(entry));
@@ -1420,11 +1427,12 @@ RlsLb::Cache::Entry* RlsLb::Cache::FindOrInsert(const RequestKey& key) {
   return it->second.get();
 }
 
-void RlsLb::Cache::Resize(size_t bytes) {
+void RlsLb::Cache::Resize(
+    size_t bytes, std::vector<OrphanablePtr<Entry>>* entries_to_delete) {
   GRPC_TRACE_LOG(rls_lb, INFO)
       << "[rlslb " << lb_policy_ << "] resizing cache to " << bytes << " bytes";
   size_limit_ = bytes;
-  MaybeShrinkSize(size_limit_);
+  MaybeShrinkSize(size_limit_, entries_to_delete);
 }
 
 void RlsLb::Cache::ResetAllBackoff() {
@@ -1504,7 +1512,8 @@ size_t RlsLb::Cache::EntrySizeForKey(const RequestKey& key) {
   return (key.Size() * 2) + sizeof(Entry);
 }
 
-void RlsLb::Cache::MaybeShrinkSize(size_t bytes) {
+void RlsLb::Cache::MaybeShrinkSize(
+    size_t bytes, std::vector<OrphanablePtr<Entry>>* entries_to_delete) {
   while (size_ > bytes) {
     auto lru_it = lru_list_.begin();
     if (GPR_UNLIKELY(lru_it == lru_list_.end())) break;
@@ -1515,6 +1524,7 @@ void RlsLb::Cache::MaybeShrinkSize(size_t bytes) {
         << "[rlslb " << lb_policy_ << "] LRU eviction: removing entry "
         << map_it->second.get() << " " << lru_it->ToString();
     size_ -= map_it->second->Size();
+    entries_to_delete->push_back(std::move(map_it->second));
     map_.erase(map_it);
   }
   if (GRPC_TRACE_FLAG_ENABLED(rls_lb)) {
@@ -1841,19 +1851,16 @@ void RlsLb::RlsRequest::OnRlsCallCompleteLocked(grpc_error_handle error) {
               << ": response info: " << response.ToString();
   }
   std::vector<ChildPolicyWrapper*> child_policies_to_finish_update;
-  std::vector<OrphanablePtr<RlsRequest>> requests_to_delete;
+  std::vector<OrphanablePtr<Cache::Entry>> entries_to_delete;
   {
     MutexLock lock(&lb_policy_->mu_);
     if (lb_policy_->is_shutdown_) return;
     rls_channel_->ReportResponseLocked(response.status.ok());
-    Cache::Entry* cache_entry = lb_policy_->cache_.FindOrInsert(key_);
+    Cache::Entry* cache_entry =
+        lb_policy_->cache_.FindOrInsert(key_, &entries_to_delete);
     child_policies_to_finish_update = cache_entry->OnRlsResponseLocked(
         std::move(response), std::move(backoff_state_));
-    auto it = lb_policy_->request_map_.find(key_);
-    if (it != lb_policy_->request_map_.end()) {
-      requests_to_delete.push_back(std::move(it->second));
-      lb_policy_->request_map_.erase(it);
-    }
+    lb_policy_->request_map_.erase(key_);
   }
   // Now that we've released the lock, finish the update on any newly
   // created child policies.
@@ -2044,6 +2051,7 @@ absl::Status RlsLb::UpdateLocked(UpdateArgs args) {
     }
   }
   // Now grab the lock to swap out the state it guards.
+  std::vector<OrphanablePtr<Cache::Entry>> entries_to_delete;
   {
     MutexLock lock(&mu_);
     // Swap out RLS channel if needed.
@@ -2055,7 +2063,8 @@ absl::Status RlsLb::UpdateLocked(UpdateArgs args) {
     // Resize cache if needed.
     if (old_config == nullptr ||
         config_->cache_size_bytes() != old_config->cache_size_bytes()) {
-      cache_.Resize(static_cast<size_t>(config_->cache_size_bytes()));
+      cache_.Resize(static_cast<size_t>(config_->cache_size_bytes()),
+                    &entries_to_delete);
     }
     // Start update of child policies if needed.
     if (update_child_policies) {
@@ -2133,41 +2142,18 @@ void RlsLb::ShutdownLocked() {
   }
   registered_metric_callback_.reset();
   Cache::CacheShutdownState cache_shutdown_state;
-  MutexLock lock(&mu_);
-  is_shutdown_ = true;
-  config_.reset(DEBUG_LOCATION, "ShutdownLocked");
-  channel_args_ = ChannelArgs();
-  cache_shutdown_state = cache_.Shutdown();
-  cache_shutdown_state.map.clear();
-  cache_shutdown_state.lru_list.clear();
-  request_map_.clear();
-  rls_channel_.reset();
-  default_child_policy_.reset();
-  // RefCountedPtr<ChildPolicyWrapper> child_policy_to_delete;
-  // OrphanablePtr<RlsChannel> rls_channel_to_delete;
-  // std::unordered_map<RequestKey, OrphanablePtr<RlsRequest>,
-  //                    absl::Hash<RequestKey>>
-  //     request_map_to_delete;
-  // Cache::CacheShutdownState cache_shutdown_state;
-  // ChannelArgs channel_args_to_delete;
-  // RefCountedPtr<RlsLbConfig> config_to_delete;
-  // {
-  //   MutexLock lock(&mu_);
-  //   is_shutdown_ = true;
-  //   config_to_delete = std::move(config_);
-  //   channel_args_to_delete = std::move(channel_args_);
-  //   cache_shutdown_state = cache_.Shutdown();
-  //   request_map_to_delete = std::move(request_map_);
-  //   rls_channel_to_delete = std::move(rls_channel_);
-  //   child_policy_to_delete = std::move(default_child_policy_);
-  // }
-  // config_to_delete.reset(DEBUG_LOCATION, "ShutdownLocked");
-  // channel_args_to_delete = ChannelArgs();
-  // cache_shutdown_state.map.clear();
-  // cache_shutdown_state.lru_list.clear();
-  // request_map_to_delete.clear();
-  // rls_channel_to_delete.reset();
-  // child_policy_to_delete.reset();
+  RefCountedPtr<ChildPolicyWrapper> child_policy_to_delete;
+  ChannelArgs channel_args_to_delete;
+  {
+    MutexLock lock(&mu_);
+    is_shutdown_ = true;
+    config_.reset(DEBUG_LOCATION, "ShutdownLocked");
+    channel_args_to_delete = std::move(channel_args_);
+    cache_shutdown_state = cache_.Shutdown();
+    request_map_.clear();
+    rls_channel_.reset();
+    child_policy_to_delete = std::move(default_child_policy_);
+  }
 }
 
 void RlsLb::UpdatePickerAsync() {
