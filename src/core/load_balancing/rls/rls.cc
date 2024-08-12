@@ -590,7 +590,7 @@ class RlsLb final : public LoadBalancingPolicy {
     void ResetAllBackoff() ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
 
     // Shutdown the cache; clean-up and orphan all the stored cache entries.
-    GRPC_MUST_USE_RESULT CacheShutdownState Shutdown()
+    GRPC_MUST_USE_RESULT std::vector<OrphanablePtr<Entry>> Shutdown()
         ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
 
     void ReportMetricsLocked(CallbackMetricReporter& reporter)
@@ -1442,10 +1442,11 @@ void RlsLb::Cache::ResetAllBackoff() {
   lb_policy_->UpdatePickerAsync();
 }
 
-RlsLb::Cache::CacheShutdownState RlsLb::Cache::Shutdown() {
-  CacheShutdownState shutdown_state;
-  shutdown_state.map = std::move(map_);
-  shutdown_state.lru_list = std::move(lru_list_);
+std::vector<OrphanablePtr<RlsLb::Cache::Entry>> RlsLb::Cache::Shutdown() {
+  std::vector<OrphanablePtr<Entry>> entries_to_delete;
+  for (auto& entry : map_) {
+    entries_to_delete.push_back(std::move(entry.second));
+  }
   if (cleanup_timer_handle_.has_value() &&
       lb_policy_->channel_control_helper()->GetEventEngine()->Cancel(
           *cleanup_timer_handle_)) {
@@ -1454,7 +1455,7 @@ RlsLb::Cache::CacheShutdownState RlsLb::Cache::Shutdown() {
     }
   }
   cleanup_timer_handle_.reset();
-  return shutdown_state;
+  return entries_to_delete;
 }
 
 void RlsLb::Cache::ReportMetricsLocked(CallbackMetricReporter& reporter) {
@@ -2141,7 +2142,7 @@ void RlsLb::ShutdownLocked() {
     LOG(INFO) << "[rlslb " << this << "] policy shutdown";
   }
   registered_metric_callback_.reset();
-  Cache::CacheShutdownState cache_shutdown_state;
+  std::vector<OrphanablePtr<Cache::Entry>> entries_to_delete;
   RefCountedPtr<ChildPolicyWrapper> child_policy_to_delete;
   ChannelArgs channel_args_to_delete;
   {
@@ -2149,7 +2150,7 @@ void RlsLb::ShutdownLocked() {
     is_shutdown_ = true;
     config_.reset(DEBUG_LOCATION, "ShutdownLocked");
     channel_args_to_delete = std::move(channel_args_);
-    cache_shutdown_state = cache_.Shutdown();
+    entries_to_delete = cache_.Shutdown();
     request_map_.clear();
     rls_channel_.reset();
     child_policy_to_delete = std::move(default_child_policy_);
