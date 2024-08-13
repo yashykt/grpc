@@ -421,7 +421,7 @@ class RlsLb final : public LoadBalancingPolicy {
   class Picker final : public LoadBalancingPolicy::SubchannelPicker {
    public:
     explicit Picker(RefCountedPtr<RlsLb> lb_policy);
-    ~Picker();
+    ~Picker() override;
 
     PickResult Pick(PickArgs args) override;
 
