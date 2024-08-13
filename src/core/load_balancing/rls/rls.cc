@@ -353,7 +353,8 @@ class RlsLb final : public LoadBalancingPolicy {
     // is called after releasing it.
     //
     // Both methods grab the data they need from the parent object.
-    void StartUpdate() ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
+    void StartUpdate(OrphanablePtr<ChildPolicyHandler>* child_policy_to_delete)
+        ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
     absl::Status MaybeFinishUpdate() ABSL_LOCKS_EXCLUDED(&RlsLb::mu_);
 
     void ExitIdleLocked() {
@@ -420,6 +421,7 @@ class RlsLb final : public LoadBalancingPolicy {
   class Picker final : public LoadBalancingPolicy::SubchannelPicker {
    public:
     explicit Picker(RefCountedPtr<RlsLb> lb_policy);
+    ~Picker();
 
     PickResult Pick(PickArgs args) override;
 
@@ -503,7 +505,8 @@ class RlsLb final : public LoadBalancingPolicy {
       // Returns a list of child policy wrappers on which FinishUpdate()
       // needs to be called after releasing the lock.
       std::vector<ChildPolicyWrapper*> OnRlsResponseLocked(
-          ResponseInfo response, std::unique_ptr<BackOff> backoff_state)
+          ResponseInfo response, std::unique_ptr<BackOff> backoff_state,
+          OrphanablePtr<ChildPolicyHandler>* child_policy_to_delete)
           ABSL_EXCLUSIVE_LOCKS_REQUIRED(&RlsLb::mu_);
 
       // Moves entry to the end of the LRU list.
@@ -871,7 +874,8 @@ absl::optional<Json> InsertOrUpdateChildPolicyField(const std::string& field,
   return Json::FromArray(std::move(array));
 }
 
-void RlsLb::ChildPolicyWrapper::StartUpdate() {
+void RlsLb::ChildPolicyWrapper::StartUpdate(
+    OrphanablePtr<ChildPolicyHandler>* child_policy_to_delete) {
   ValidationErrors errors;
   auto child_policy_config = InsertOrUpdateChildPolicyField(
       lb_policy_->config_->child_policy_config_target_field_name(), target_,
@@ -894,7 +898,7 @@ void RlsLb::ChildPolicyWrapper::StartUpdate() {
     pending_config_.reset();
     picker_ = MakeRefCounted<TransientFailurePicker>(
         absl::UnavailableError(config.status().message()));
-    child_policy_.reset();
+    *child_policy_to_delete = std::move(child_policy_);
   } else {
     pending_config_ = std::move(*config);
   }
@@ -1040,6 +1044,15 @@ RlsLb::Picker::Picker(RefCountedPtr<RlsLb> lb_policy)
     default_child_policy_ =
         lb_policy_->default_child_policy_->Ref(DEBUG_LOCATION, "Picker");
   }
+}
+
+RlsLb::Picker::~Picker() {
+#ifndef NDEBUG
+  // Verify that we never destroy the picker from within the critical region.
+  // This is to protect us against unreffing child policies from within the
+  // critical region and deadlocking.
+  MutexLock lock(&lb_policy_->mu_);
+#endif
 }
 
 LoadBalancingPolicy::PickResult RlsLb::Picker::Pick(PickArgs args) {
@@ -1211,9 +1224,16 @@ void RlsLb::Cache::Entry::Orphan() {
   GRPC_TRACE_LOG(rls_lb, INFO)
       << "[rlslb " << lb_policy_.get() << "] cache entry=" << this << " "
       << lru_iterator_->ToString() << ": cache entry evicted";
-  is_shutdown_ = true;
-  lb_policy_->cache_.lru_list_.erase(lru_iterator_);
-  lru_iterator_ = lb_policy_->cache_.lru_list_.end();  // Just in case.
+  std::vector<RefCountedPtr<ChildPolicyWrapper>>
+      child_policy_wrappers_to_delete;
+  {
+    MutexLock lock(&lb_policy_->mu_);
+    is_shutdown_ = true;
+    lb_policy_->cache_.lru_list_.erase(lru_iterator_);
+    lru_iterator_ = lb_policy_->cache_.lru_list_.end();
+    child_policy_wrappers_to_delete = std::move(child_policy_wrappers_);
+  }
+  // Just in case.
   backoff_state_.reset();
   if (backoff_timer_ != nullptr) {
     backoff_timer_.reset();
@@ -1298,7 +1318,8 @@ void RlsLb::Cache::Entry::MarkUsed() {
 
 std::vector<RlsLb::ChildPolicyWrapper*>
 RlsLb::Cache::Entry::OnRlsResponseLocked(
-    ResponseInfo response, std::unique_ptr<BackOff> backoff_state) {
+    ResponseInfo response, std::unique_ptr<BackOff> backoff_state,
+    OrphanablePtr<ChildPolicyHandler>* child_policy_to_delete) {
   // Move the entry to the end of the LRU list.
   MarkUsed();
   // If the request failed, store the failed status and update the
@@ -1359,7 +1380,7 @@ RlsLb::Cache::Entry::OnRlsResponseLocked(
     if (it == lb_policy_->child_policy_map_.end()) {
       auto new_child = MakeRefCounted<ChildPolicyWrapper>(
           lb_policy_.Ref(DEBUG_LOCATION, "ChildPolicyWrapper"), target);
-      new_child->StartUpdate();
+      new_child->StartUpdate(child_policy_to_delete);
       child_policies_to_finish_update.push_back(new_child.get());
       new_child_policy_wrappers.emplace_back(std::move(new_child));
     } else {
@@ -1439,6 +1460,7 @@ void RlsLb::Cache::ResetAllBackoff() {
 
 std::vector<OrphanablePtr<RlsLb::Cache::Entry>> RlsLb::Cache::Shutdown() {
   std::vector<OrphanablePtr<Entry>> entries_to_delete;
+  entries_to_delete.reserve(map_.size());
   for (auto& entry : map_) {
     entries_to_delete.push_back(std::move(entry.second));
   }
@@ -1840,6 +1862,7 @@ void RlsLb::RlsRequest::OnRlsCallCompleteLocked(grpc_error_handle error) {
       << key_.ToString() << ": response info: " << response.ToString();
   std::vector<ChildPolicyWrapper*> child_policies_to_finish_update;
   std::vector<OrphanablePtr<Cache::Entry>> entries_to_delete;
+  OrphanablePtr<ChildPolicyHandler> child_policy_to_delete;
   {
     MutexLock lock(&lb_policy_->mu_);
     if (lb_policy_->is_shutdown_) return;
@@ -1847,7 +1870,8 @@ void RlsLb::RlsRequest::OnRlsCallCompleteLocked(grpc_error_handle error) {
     Cache::Entry* cache_entry =
         lb_policy_->cache_.FindOrInsert(key_, &entries_to_delete);
     child_policies_to_finish_update = cache_entry->OnRlsResponseLocked(
-        std::move(response), std::move(backoff_state_));
+        std::move(response), std::move(backoff_state_),
+        &child_policy_to_delete);
     lb_policy_->request_map_.erase(key_);
   }
   // Now that we've released the lock, finish the update on any newly
@@ -2034,6 +2058,7 @@ absl::Status RlsLb::UpdateLocked(UpdateArgs args) {
   }
   // Now grab the lock to swap out the state it guards.
   std::vector<OrphanablePtr<Cache::Entry>> entries_to_delete;
+  OrphanablePtr<ChildPolicyHandler> child_policy_to_delete;
   {
     MutexLock lock(&mu_);
     // Swap out RLS channel if needed.
@@ -2053,12 +2078,12 @@ absl::Status RlsLb::UpdateLocked(UpdateArgs args) {
       GRPC_TRACE_LOG(rls_lb, INFO)
           << "[rlslb " << this << "] starting child policy updates";
       for (auto& p : child_policy_map_) {
-        p.second->StartUpdate();
+        p.second->StartUpdate(&child_policy_to_delete);
       }
     } else if (created_default_child) {
       GRPC_TRACE_LOG(rls_lb, INFO)
           << "[rlslb " << this << "] starting default child policy update";
-      default_child_policy_->StartUpdate();
+      default_child_policy_->StartUpdate(&child_policy_to_delete);
     }
   }
   // Now that we've released the lock, finish update of child policies.
