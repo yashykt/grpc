@@ -93,7 +93,7 @@ class PosixEngineListenerImpl
                   ResolvedAddressToNormalizedString(socket_.addr),
               listener_->poller_->CanTrackErrors())),
           notify_on_accept_(PosixEngineClosure::ToPermanentClosure(
-              [this](absl::Status status) { NotifyOnAccept(status); })){};
+              [this](absl::Status status) { NotifyOnAccept(status); })) {};
     // Start listening for incoming connections on the socket.
     void Start();
     // Internal callback invoked when the socket has incoming connections to
@@ -110,6 +110,7 @@ class PosixEngineListenerImpl
     ListenerSocketsContainer::ListenerSocket& Socket() { return socket_; }
     ~AsyncConnectionAcceptor() {
       // If uds socket, unlink it so that the corresponding file is deleted.
+      LOG(ERROR) << "~AsyncConnectionAcceptor " << this;
       UnlinkIfUnixDomainSocket(*socket_.sock.LocalAddress());
       handle_->OrphanHandle(nullptr, nullptr, "");
       delete notify_on_accept_;
@@ -129,7 +130,7 @@ class PosixEngineListenerImpl
   class ListenerAsyncAcceptors : public ListenerSocketsContainer {
    public:
     explicit ListenerAsyncAcceptors(PosixEngineListenerImpl* listener)
-        : listener_(listener){};
+        : listener_(listener) {};
 
     void UpdateOnAppendCallback(
         PosixListenerWithFdSupport::OnPosixBindNewFdCallback on_append) {

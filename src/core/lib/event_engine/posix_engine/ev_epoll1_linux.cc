@@ -282,6 +282,7 @@ bool InitEpoll1PollerLinux() {
 void Epoll1EventHandle::OrphanHandle(PosixEngineClosure* on_done,
                                      int* release_fd,
                                      absl::string_view reason) {
+  LOG(ERROR) << "OrphanHandle " << this << " " << reason;
   bool is_release_fd = (release_fd != nullptr);
   bool was_shutdown = false;
   if (!read_closure_->IsShutdown()) {
@@ -303,6 +304,7 @@ void Epoll1EventHandle::OrphanHandle(PosixEngineClosure* on_done,
     }
     *release_fd = fd_;
   } else {
+    LOG(ERROR) << "shutting down and closing " << this << " " << reason;
     shutdown(fd_, SHUT_RDWR);
     close(fd_);
   }

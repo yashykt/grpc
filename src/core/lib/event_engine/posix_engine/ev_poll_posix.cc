@@ -118,6 +118,7 @@ class PollEventHandle : public EventHandle {
   }
   void CloseFd() ABSL_EXCLUSIVE_LOCKS_REQUIRED(mu_) {
     if (!released_ && !closed_) {
+      LOG(ERROR) << "closing fd " << this;
       closed_ = true;
       close(fd_);
     }
@@ -349,7 +350,8 @@ EventHandle* PollPoller::CreateHandle(int fd, absl::string_view /*name*/,
 }
 
 void PollEventHandle::OrphanHandle(PosixEngineClosure* on_done, int* release_fd,
-                                   absl::string_view /*reason*/) {
+                                   absl::string_view reason) {
+  LOG(ERROR) << "Orphan Handle " << this << " " << reason;
   ForkFdListRemoveHandle(this);
   ForceRemoveHandleFromPoller();
   {
@@ -374,6 +376,7 @@ void PollEventHandle::OrphanHandle(PosixEngineClosure* on_done, int* release_fd,
     }
     // signal read/write closed to OS so that future operations fail.
     if (!released_) {
+      LOG(ERROR) << "calling shutdown " << this;
       shutdown(fd_, SHUT_RDWR);
     }
     if (!IsWatched()) {
@@ -436,6 +439,7 @@ int PollEventHandle::SetReadyLocked(PosixEngineClosure** st) {
 void PollEventHandle::ShutdownHandle(absl::Status why) {
   // We need to take a Ref here because SetReadyLocked may trigger execution
   // of a closure which calls OrphanHandle or poller->Shutdown() prematurely.
+  LOG(ERROR) << "Shutdown Handle " << this << " " << why.ToString();
   Ref();
   {
     grpc_core::MutexLock lock(&mu_);
