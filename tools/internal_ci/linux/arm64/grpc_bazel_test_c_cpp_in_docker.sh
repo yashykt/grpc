@@ -22,12 +22,12 @@ python3 tools/run_tests/start_port_server.py
 python3 tools/run_tests/python_utils/bazel_report_helper.py --report_path bazel_test_c_cpp
 bazel_test_c_cpp/bazel_wrapper \
   --bazelrc=tools/remote_build/include/test_locally_with_resultstore_results.bazelrc \
-  test --config=opt \
+  test -c dbg \
   --test_tag_filters=-no_linux,-no_arm64 \
   --build_tag_filters=-no_linux,-no_arm64 \
   --runs_per_test=1000 \
   --test_filter=*Uds* \
-  --test_env=GRPC_TRACE=all,-timer,-timer_check --test_env=GRPC_VERBOSITY=debug \
+  --test_env=GRPC_TRACE=polling,polling_api,call,channel,channel_stack,chttp2_hpack_parser,client_channel,client_channel_call,event_engine,event_engine_poller,event_engine_endpoint,event_engine_endpoint_data,http,retry,tcp --test_env=GRPC_VERBOSITY=debug \
   -- \
   //test/core/end2end:retry_transparent_max_concurrent_streams_test@poller=poll
 
