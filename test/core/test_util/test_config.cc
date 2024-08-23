@@ -127,6 +127,8 @@ void grpc_test_init(int* argc, char** argv) {
   absl::InitializeLog();
   gpr_log_verbosity_init();
   absl::SetGlobalVLogLevel(2);
+  absl::SetMinLogLevel(absl::LogSeverityAtLeast::kInfo);
+  absl::SetStderrThreshold(absl::LogSeverityAtLeast::kInfo);
   ParseTestArgs(argc, argv);
   grpc_core::testing::InitializeStackTracer(argv[0]);
   absl::FailureSignalHandlerOptions options;

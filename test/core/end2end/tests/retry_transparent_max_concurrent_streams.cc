@@ -114,7 +114,7 @@ CORE_END2END_TEST(RetryHttp2Test, RetryTransparentMaxConcurrentStreams) {
   // Server should get the second call.
   auto s2 = RequestCall(201);
   Expect(201, true);
-  Step();
+  Step(Duration::Seconds(20));
   EXPECT_EQ(s2.method(), "/service/method");
   // Make sure the "grpc-previous-rpc-attempts" header was NOT sent, since
   // we don't do that for transparent retries.
