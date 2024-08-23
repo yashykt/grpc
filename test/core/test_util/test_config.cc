@@ -124,6 +124,7 @@ void ParseTestArgs(int* argc, char** argv) {
 
 void grpc_test_init(int* argc, char** argv) {
   gpr_log_verbosity_init();
+  absl::SetGlobalVLogLevel(2);
   ParseTestArgs(argc, argv);
   grpc_core::testing::InitializeStackTracer(argv[0]);
   absl::FailureSignalHandlerOptions options;

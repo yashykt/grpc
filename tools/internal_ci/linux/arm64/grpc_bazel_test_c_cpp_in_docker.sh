@@ -26,6 +26,7 @@ bazel_test_c_cpp/bazel_wrapper \
   --test_tag_filters=-no_linux,-no_arm64 \
   --build_tag_filters=-no_linux,-no_arm64 \
   --runs_per_test=1000 \
+  --test_filter=*Uds* \
   -- \
   //test/core/end2end:retry_transparent_max_concurrent_streams_test@poller=poll
 
