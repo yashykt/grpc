@@ -20,15 +20,8 @@
 # Any new instance of a deprecated function being used in the code will be
 # flagged by the script. If there is a new instance of a deprecated function in
 # a Pull Request, then the Sanity tests will fail for the Pull Request.
-# We are currently working on clearing out the usage of deprecated functions in
-# the entire gRPC code base.
-# While our cleaning is in progress we have a temporary allow list. The allow
-# list has a list of files where clean up of deprecated functions is pending.
-# As we clean up the deprecated function from files, we will remove them from
-# the allow list.
-# It would be wise to do the file clean up and the altering of the allow list
-# in the same PR. This will make sure that any roll back of a clean up PR will
-# also alter the allow list and avoid build failures.
+# The allow list has a list of files where clean up of deprecated functions is
+# pending.
 
 import os
 import sys
@@ -46,15 +39,9 @@ DEPRECATED_FUNCTION_TEMP_ALLOW_LIST = {
         "./src/core/util/windows/log.cc",
         "./src/ruby/ext/grpc/rb_grpc_imports.generated.c",
         "./src/ruby/ext/grpc/rb_grpc_imports.generated.h",
-        "./test/core/end2end/tests/no_logging.cc",
     ],
-    "gpr_log_severity_string": [],
     "gpr_log(": [
         "./include/grpc/support/log.h",
-        "./src/core/ext/transport/cronet/transport/cronet_transport.cc",
-        "./src/core/ext/transport/inproc/legacy_inproc_transport.cc",
-        "./src/core/handshaker/http_connect/http_proxy_mapper.cc",
-        "./src/core/lib/surface/api_trace.h",
         "./src/core/util/android/log.cc",
         "./src/core/util/linux/log.cc",
         "./src/core/util/posix/log.cc",
@@ -69,50 +56,31 @@ DEPRECATED_FUNCTION_TEMP_ALLOW_LIST = {
         "./src/ruby/ext/grpc/rb_server.c",
     ],
     "gpr_should_log(": [
-        "./include/grpc/support/log.h",
         "./src/core/util/android/log.cc",
         "./src/core/util/linux/log.cc",
         "./src/core/util/log.cc",
         "./src/core/util/posix/log.cc",
         "./src/core/util/windows/log.cc",
-        "./src/ruby/ext/grpc/rb_call_credentials.c",
-        "./test/core/end2end/tests/no_logging.cc",
     ],
     "gpr_log_message(": [
-        "./include/grpc/support/log.h",
         "./src/core/util/android/log.cc",
         "./src/core/util/linux/log.cc",
         "./src/core/util/log.cc",
         "./src/core/util/posix/log.cc",
         "./src/core/util/windows/log.cc",
     ],
-    "gpr_set_log_verbosity(": [
-        "./include/grpc/support/log.h",
-        "./src/core/util/log.cc",
-        "./test/core/end2end/tests/no_logging.cc",
-    ],
-    "gpr_log_func_args": [
-        "./include/grpc/support/log.h",
-        "./src/core/util/log.cc",
-        "./test/core/end2end/tests/no_logging.cc",
-    ],
-    "gpr_set_log_function(": [
-        "./include/grpc/support/log.h",
-        "./src/core/util/log.cc",
-        "./test/core/end2end/tests/no_logging.cc",
-    ],
-    "gpr_assertion_failed": [],
-    "GPR_ASSERT": [],
-    "GPR_DEBUG_ASSERT": [],
+    "gpr_log_func_args": [],  # Safe to delete this entry after Nov 2024.
+    "gpr_set_log_function(": [],  # Safe to delete this entry after Nov 2024.
+    "GPR_ASSERT": [],  # Safe to delete this entry after Nov 2024.
+    "gpr_assertion_failed": [],  # Safe to delete this entry after Nov 2024.
+    "GPR_DEBUG_ASSERT": [],  # Safe to delete this entry after Nov 2024.
+    "gpr_log_severity_string": [],  # Safe to delete this entry after Nov 2024.
+    "gpr_set_log_verbosity(": [],  # Safe to delete this entry after Nov 2024.
 }
 
 errors = 0
 num_files = 0
 for root, dirs, files in os.walk("."):
-    if root.startswith(
-        "./tools/distrib/python/grpcio_tools"
-    ) or root.startswith("./src/python"):
-        continue
     for filename in files:
         num_files += 1
         path = os.path.join(root, filename)
@@ -128,7 +96,7 @@ for root, dirs, files in os.walk("."):
             if deprecated in text:
                 print(
                     (
-                        'Illegal use of "%s" in %s . Use absl functions instead.'
+                        'Illegal use of "%s" in %s. Use absl functions instead.'
                         % (deprecated, path)
                     )
                 )
@@ -142,5 +110,5 @@ if errors > 0:
 # https://github.com/grpc/grpc/issues/15381
 # Basically, a change rendered this script useless and we did not realize it.
 # This check ensures that this type of issue doesn't occur again.
-assert num_files > 18000  # we have more files
-# print(('Number of files checked : %d ' % (num_files)))
+assert num_files > 18000
+print("Number of files checked : %d " % (num_files))

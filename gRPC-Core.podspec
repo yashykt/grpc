@@ -21,7 +21,7 @@
 
 Pod::Spec.new do |s|
   s.name     = 'gRPC-Core'
-  version = '1.66.0-dev'
+  version = '1.67.0-dev'
   s.version  = version
   s.summary  = 'Core cross-platform gRPC library, written in C'
   s.homepage = 'https://grpc.io'
@@ -199,7 +199,7 @@ Pod::Spec.new do |s|
     ss.libraries = 'z'
     ss.dependency "#{s.name}/Interface", version
     ss.dependency "#{s.name}/Privacy", version
-    ss.dependency 'BoringSSL-GRPC', '0.0.35'
+    ss.dependency 'BoringSSL-GRPC', '0.0.36'
     ss.dependency 'abseil/algorithm/container', abseil_version
     ss.dependency 'abseil/base/base', abseil_version
     ss.dependency 'abseil/base/config', abseil_version
@@ -364,8 +364,6 @@ Pod::Spec.new do |s|
                       'src/core/ext/transport/chttp2/transport/huffsyms.h',
                       'src/core/ext/transport/chttp2/transport/internal.h',
                       'src/core/ext/transport/chttp2/transport/legacy_frame.h',
-                      'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.cc',
-                      'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h',
                       'src/core/ext/transport/chttp2/transport/parsing.cc',
                       'src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc',
                       'src/core/ext/transport/chttp2/transport/ping_abuse_policy.h',
@@ -1719,6 +1717,8 @@ Pod::Spec.new do |s|
                       'src/core/lib/security/credentials/tls/tls_credentials.h',
                       'src/core/lib/security/credentials/tls/tls_utils.cc',
                       'src/core/lib/security/credentials/tls/tls_utils.h',
+                      'src/core/lib/security/credentials/token_fetcher/token_fetcher_credentials.cc',
+                      'src/core/lib/security/credentials/token_fetcher/token_fetcher_credentials.h',
                       'src/core/lib/security/credentials/xds/xds_credentials.cc',
                       'src/core/lib/security/credentials/xds/xds_credentials.h',
                       'src/core/lib/security/security_connector/alts/alts_security_connector.cc',
@@ -1757,7 +1757,6 @@ Pod::Spec.new do |s|
                       'src/core/lib/slice/slice_refcount.h',
                       'src/core/lib/slice/slice_string_helpers.cc',
                       'src/core/lib/slice/slice_string_helpers.h',
-                      'src/core/lib/surface/api_trace.h',
                       'src/core/lib/surface/byte_buffer.cc',
                       'src/core/lib/surface/byte_buffer_reader.cc',
                       'src/core/lib/surface/call.cc',
@@ -1930,6 +1929,8 @@ Pod::Spec.new do |s|
                       'src/core/resolver/resolver_registry.h',
                       'src/core/resolver/server_address.h',
                       'src/core/resolver/sockaddr/sockaddr_resolver.cc',
+                      'src/core/resolver/xds/xds_config.cc',
+                      'src/core/resolver/xds/xds_config.h',
                       'src/core/resolver/xds/xds_dependency_manager.cc',
                       'src/core/resolver/xds/xds_dependency_manager.h',
                       'src/core/resolver/xds/xds_resolver.cc',
@@ -2059,6 +2060,7 @@ Pod::Spec.new do |s|
                       'src/core/util/posix/sync.cc',
                       'src/core/util/posix/time.cc',
                       'src/core/util/posix/tmpfile.cc',
+                      'src/core/util/ring_buffer.h',
                       'src/core/util/spinlock.h',
                       'src/core/util/string.cc',
                       'src/core/util/string.h',
@@ -2068,6 +2070,7 @@ Pod::Spec.new do |s|
                       'src/core/util/time_precise.cc',
                       'src/core/util/time_precise.h',
                       'src/core/util/tmpfile.h',
+                      'src/core/util/unique_ptr_with_bitset.h',
                       'src/core/util/upb_utils.h',
                       'src/core/util/useful.h',
                       'src/core/util/windows/cpu.cc',
@@ -2439,7 +2442,6 @@ Pod::Spec.new do |s|
                               'src/core/ext/transport/chttp2/transport/huffsyms.h',
                               'src/core/ext/transport/chttp2/transport/internal.h',
                               'src/core/ext/transport/chttp2/transport/legacy_frame.h',
-                              'src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h',
                               'src/core/ext/transport/chttp2/transport/ping_abuse_policy.h',
                               'src/core/ext/transport/chttp2/transport/ping_callbacks.h',
                               'src/core/ext/transport/chttp2/transport/ping_rate_policy.h',
@@ -3224,6 +3226,7 @@ Pod::Spec.new do |s|
                               'src/core/lib/security/credentials/tls/grpc_tls_crl_provider.h',
                               'src/core/lib/security/credentials/tls/tls_credentials.h',
                               'src/core/lib/security/credentials/tls/tls_utils.h',
+                              'src/core/lib/security/credentials/token_fetcher/token_fetcher_credentials.h',
                               'src/core/lib/security/credentials/xds/xds_credentials.h',
                               'src/core/lib/security/security_connector/alts/alts_security_connector.h',
                               'src/core/lib/security/security_connector/fake/fake_security_connector.h',
@@ -3243,7 +3246,6 @@ Pod::Spec.new do |s|
                               'src/core/lib/slice/slice_internal.h',
                               'src/core/lib/slice/slice_refcount.h',
                               'src/core/lib/slice/slice_string_helpers.h',
-                              'src/core/lib/surface/api_trace.h',
                               'src/core/lib/surface/call.h',
                               'src/core/lib/surface/call_test_only.h',
                               'src/core/lib/surface/call_utils.h',
@@ -3327,6 +3329,7 @@ Pod::Spec.new do |s|
                               'src/core/resolver/resolver_factory.h',
                               'src/core/resolver/resolver_registry.h',
                               'src/core/resolver/server_address.h',
+                              'src/core/resolver/xds/xds_config.h',
                               'src/core/resolver/xds/xds_dependency_manager.h',
                               'src/core/resolver/xds/xds_resolver_attributes.h',
                               'src/core/server/server.h',
@@ -3388,10 +3391,12 @@ Pod::Spec.new do |s|
                               'src/core/util/json/json_util.h',
                               'src/core/util/json/json_writer.h',
                               'src/core/util/latent_see.h',
+                              'src/core/util/ring_buffer.h',
                               'src/core/util/spinlock.h',
                               'src/core/util/string.h',
                               'src/core/util/time_precise.h',
                               'src/core/util/tmpfile.h',
+                              'src/core/util/unique_ptr_with_bitset.h',
                               'src/core/util/upb_utils.h',
                               'src/core/util/useful.h',
                               'src/core/xds/grpc/certificate_provider_store.h',

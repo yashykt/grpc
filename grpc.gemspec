@@ -13,7 +13,7 @@ Gem::Specification.new do |s|
   s.description   = 'Send RPCs from Ruby using GRPC'
   s.license       = 'Apache-2.0'
 
-  s.required_ruby_version = '>= 2.5.0'
+  s.required_ruby_version = '>= 3.0'
 
   s.files = %w( Makefile .yardopts )
   s.files += %w( etc/roots.pem )
@@ -250,8 +250,6 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/ext/transport/chttp2/transport/huffsyms.h )
   s.files += %w( src/core/ext/transport/chttp2/transport/internal.h )
   s.files += %w( src/core/ext/transport/chttp2/transport/legacy_frame.h )
-  s.files += %w( src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.cc )
-  s.files += %w( src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.h )
   s.files += %w( src/core/ext/transport/chttp2/transport/parsing.cc )
   s.files += %w( src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc )
   s.files += %w( src/core/ext/transport/chttp2/transport/ping_abuse_policy.h )
@@ -1605,6 +1603,8 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/lib/security/credentials/tls/tls_credentials.h )
   s.files += %w( src/core/lib/security/credentials/tls/tls_utils.cc )
   s.files += %w( src/core/lib/security/credentials/tls/tls_utils.h )
+  s.files += %w( src/core/lib/security/credentials/token_fetcher/token_fetcher_credentials.cc )
+  s.files += %w( src/core/lib/security/credentials/token_fetcher/token_fetcher_credentials.h )
   s.files += %w( src/core/lib/security/credentials/xds/xds_credentials.cc )
   s.files += %w( src/core/lib/security/credentials/xds/xds_credentials.h )
   s.files += %w( src/core/lib/security/security_connector/alts/alts_security_connector.cc )
@@ -1643,7 +1643,6 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/lib/slice/slice_refcount.h )
   s.files += %w( src/core/lib/slice/slice_string_helpers.cc )
   s.files += %w( src/core/lib/slice/slice_string_helpers.h )
-  s.files += %w( src/core/lib/surface/api_trace.h )
   s.files += %w( src/core/lib/surface/byte_buffer.cc )
   s.files += %w( src/core/lib/surface/byte_buffer_reader.cc )
   s.files += %w( src/core/lib/surface/call.cc )
@@ -1816,6 +1815,8 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/resolver/resolver_registry.h )
   s.files += %w( src/core/resolver/server_address.h )
   s.files += %w( src/core/resolver/sockaddr/sockaddr_resolver.cc )
+  s.files += %w( src/core/resolver/xds/xds_config.cc )
+  s.files += %w( src/core/resolver/xds/xds_config.h )
   s.files += %w( src/core/resolver/xds/xds_dependency_manager.cc )
   s.files += %w( src/core/resolver/xds/xds_dependency_manager.h )
   s.files += %w( src/core/resolver/xds/xds_resolver.cc )
@@ -1945,6 +1946,7 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/util/posix/sync.cc )
   s.files += %w( src/core/util/posix/time.cc )
   s.files += %w( src/core/util/posix/tmpfile.cc )
+  s.files += %w( src/core/util/ring_buffer.h )
   s.files += %w( src/core/util/spinlock.h )
   s.files += %w( src/core/util/string.cc )
   s.files += %w( src/core/util/string.h )
@@ -1954,6 +1956,7 @@ Gem::Specification.new do |s|
   s.files += %w( src/core/util/time_precise.cc )
   s.files += %w( src/core/util/time_precise.h )
   s.files += %w( src/core/util/tmpfile.h )
+  s.files += %w( src/core/util/unique_ptr_with_bitset.h )
   s.files += %w( src/core/util/upb_utils.h )
   s.files += %w( src/core/util/useful.h )
   s.files += %w( src/core/util/windows/cpu.cc )

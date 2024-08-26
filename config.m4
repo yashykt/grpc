@@ -101,7 +101,6 @@ if test "$PHP_GRPC" != "no"; then
     src/core/ext/transport/chttp2/transport/hpack_parser_table.cc \
     src/core/ext/transport/chttp2/transport/http2_settings.cc \
     src/core/ext/transport/chttp2/transport/huffsyms.cc \
-    src/core/ext/transport/chttp2/transport/max_concurrent_streams_policy.cc \
     src/core/ext/transport/chttp2/transport/parsing.cc \
     src/core/ext/transport/chttp2/transport/ping_abuse_policy.cc \
     src/core/ext/transport/chttp2/transport/ping_callbacks.cc \
@@ -671,6 +670,7 @@ if test "$PHP_GRPC" != "no"; then
     src/core/lib/security/credentials/tls/grpc_tls_crl_provider.cc \
     src/core/lib/security/credentials/tls/tls_credentials.cc \
     src/core/lib/security/credentials/tls/tls_utils.cc \
+    src/core/lib/security/credentials/token_fetcher/token_fetcher_credentials.cc \
     src/core/lib/security/credentials/xds/xds_credentials.cc \
     src/core/lib/security/security_connector/alts/alts_security_connector.cc \
     src/core/lib/security/security_connector/fake/fake_security_connector.cc \
@@ -779,6 +779,7 @@ if test "$PHP_GRPC" != "no"; then
     src/core/resolver/resolver.cc \
     src/core/resolver/resolver_registry.cc \
     src/core/resolver/sockaddr/sockaddr_resolver.cc \
+    src/core/resolver/xds/xds_config.cc \
     src/core/resolver/xds/xds_dependency_manager.cc \
     src/core/resolver/xds/xds_resolver.cc \
     src/core/server/server.cc \
@@ -1391,7 +1392,7 @@ if test "$PHP_GRPC" != "no"; then
     -D_HAS_EXCEPTIONS=0 -DNOMINMAX -DGRPC_ARES=0 \
     -DGRPC_POSIX_FORK_ALLOW_PTHREAD_ATFORK=1 \
     -DGRPC_XDS_USER_AGENT_NAME_SUFFIX='"\"PHP\""' \
-    -DGRPC_XDS_USER_AGENT_VERSION_SUFFIX='"\"1.66.0dev\""')
+    -DGRPC_XDS_USER_AGENT_VERSION_SUFFIX='"\"1.67.0dev\""')
 
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/channelz)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/client_channel)
@@ -1558,6 +1559,7 @@ if test "$PHP_GRPC" != "no"; then
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/security/credentials/plugin)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/security/credentials/ssl)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/security/credentials/tls)
+  PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/security/credentials/token_fetcher)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/security/credentials/xds)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/security/security_connector)
   PHP_ADD_BUILD_DIR($ext_builddir/src/core/lib/security/security_connector/alts)
