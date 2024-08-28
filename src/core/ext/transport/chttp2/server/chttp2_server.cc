@@ -270,8 +270,6 @@ class Chttp2ServerListener : public Server::ListenerInterface {
   bool started_ ABSL_GUARDED_BY(mu_) = false;
   // Signals whether grpc_tcp_server_start() has completed.
   CondVar started_cv_ ABSL_GUARDED_BY(mu_);
-  // Signals whether new requests/connections are to be accepted.
-  bool is_serving_ ABSL_GUARDED_BY(mu_) = false;
   // Signals whether the application has triggered shutdown.
   bool shutdown_ ABSL_GUARDED_BY(mu_) = false;
   std::map<ActiveConnection*, OrphanablePtr<ActiveConnection>> connections_
