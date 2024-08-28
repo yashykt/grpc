@@ -831,62 +831,40 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
   ChannelArgs args = self->args_;
   OrphanablePtr<grpc_endpoint> endpoint(tcp);
   AcceptorPtr acceptor(server_acceptor);
-  RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
-      connection_manager;
-  {
-    MutexLock lock(&self->mu_);
-    connection_manager = self->connection_manager_;
-  }
   if (!self->connection_quota_->AllowIncomingConnection(
           self->memory_quota_, grpc_endpoint_get_peer(endpoint.get()))) {
     return;
   }
-  if (self->config_fetcher_ != nullptr) {
-    if (connection_manager == nullptr) {
-      return;
-    }
-    absl::StatusOr<ChannelArgs> args_result =
-        connection_manager->UpdateChannelArgsForConnection(args, tcp);
-    if (!args_result.ok()) {
-      return;
-    }
-    grpc_error_handle error;
-    args = self->args_modifier_(*args_result, &error);
-    if (!error.ok()) {
-      return;
-    }
-  }
-  auto memory_owner = self->memory_quota_->CreateMemoryOwner();
-  EventEngine* const event_engine = self->args_.GetObject<EventEngine>();
-  auto connection = memory_owner.MakeOrphanable<ActiveConnection>(
-      accepting_pollset, std::move(acceptor), event_engine, args,
-      std::move(memory_owner));
-  // Hold a ref to connection to allow starting handshake outside the
-  // critical region
-  RefCountedPtr<ActiveConnection> connection_ref =
-      RefCountedPtr<ActiveConnection>(
-          static_cast<ActiveConnection*>(connection->Ref().release()));
+  RefCountedPtr<ActiveConnection> connection_ref;
   RefCountedPtr<Chttp2ServerListener> listener_ref;
-  {
-    MutexLock lock(&self->mu_);
-    // Shutdown the the connection if listener's stopped serving or if the
-    // connection manager has changed.
-    if (!self->shutdown_ && self->is_serving_ &&
-        connection_manager == self->connection_manager_) {
-      // The ref for both the listener and tcp_server need to be taken in the
-      // critical region after having made sure that the listener has not been
-      // Orphaned, so as to avoid heap-use-after-free issues where `Ref()` is
-      // invoked when the listener is already shutdown. Note that the listener
-      // holds a ref to the tcp_server but this ref is given away when the
-      // listener is orphaned (shutdown).
-      if (self->tcp_server_ != nullptr) {
-        grpc_tcp_server_ref(self->tcp_server_);
-      }
-      listener_ref = self->RefAsSubclass<Chttp2ServerListener>();
-      self->connections_.emplace(connection.get(), std::move(connection));
-    }
-  }
-  if (connection == nullptr && listener_ref != nullptr) {
+  self->server_->AddLogicalConnectionAndUpdateChannelArgs(
+      [&](const ChannelArgs& args) -> OrphanablePtr<LogicalConnection> {
+        {
+          // The ref for both the listener and tcp_server need to be taken in
+          // the critical region after having made sure that the listener has
+          // not been Orphaned, so as to avoid heap-use-after-free issues where
+          // `Ref()` is invoked when the listener is already shutdown. Note that
+          // the listener holds a ref to the tcp_server but this ref is given
+          // away when the listener is orphaned (shutdown).
+          MutexLock lock(&self->mu_);
+          if (self->shutdown_) {
+            return nullptr;
+          }
+          if (!self->shutdown_) {
+            grpc_tcp_server_ref(self->tcp_server_);
+          }
+          listener_ref = self->RefAsSubclass<Chttp2ServerListener>();
+        }
+        auto memory_owner = self->memory_quota_->CreateMemoryOwner();
+        EventEngine* const event_engine = self->args_.GetObject<EventEngine>();
+        auto connection = memory_owner.MakeOrphanable<ActiveConnection>(
+            accepting_pollset, std::move(acceptor), event_engine, args,
+            std::move(memory_owner));
+        connection_ref = connection->RefAsSubclass<ActiveConnection>();
+        return connection;
+      },
+      self->args_, tcp);
+  if (connection_ref != nullptr && listener_ref != nullptr) {
     connection_ref->Start(std::move(listener_ref), std::move(endpoint), args);
   }
 }

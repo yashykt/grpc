@@ -203,8 +203,12 @@ class Server : public ServerInterface,
   // Starts listening for connections.
   void Start() ABSL_LOCKS_EXCLUDED(mu_global_);
 
-  // Adds a LogicalConnection to the server
-  absl::Status AddLogicalConnection(OrphanablePtr<LogicalConnection> connection)
+  // Adds a LogicalConnection to the server and updates the channel args if
+  // needed.
+  void AddLogicalConnectionAndUpdateChannelArgs(
+      absl::AnyInvocable<
+          OrphanablePtr<LogicalConnection>(const ChannelArgs& args)>,
+      const ChannelArgs& args, grpc_endpoint* endpoint)
       ABSL_LOCKS_EXCLUDED(mu_global_);
   // Sets up a transport.  Creates a channel stack and binds the transport to
   // the server.  Called from the listener when a new connection is accepted.

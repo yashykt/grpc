@@ -627,6 +627,11 @@ class LogicalConnection : public InternallyRefCounted<LogicalConnection> {
   LogicalConnection(LogicalConnection&&) = delete;
   LogicalConnection& operator=(LogicalConnection&&) = delete;
   ~LogicalConnection() override = default;
+
+  template <typename T>
+  RefCountedPtr<T> RefAsSubclass() {
+    return InternallyRefCounted<LogicalConnection>::RefAsSubclass<T>();
+  }
 };
 
 }  // namespace grpc_core

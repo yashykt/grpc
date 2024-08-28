@@ -69,6 +69,7 @@
 #include "src/core/lib/promise/seq.h"
 #include "src/core/lib/promise/try_join.h"
 #include "src/core/lib/promise/try_seq.h"
+#include "src/core/lib/security/credentials/credentials.h"
 #include "src/core/lib/slice/slice_buffer.h"
 #include "src/core/lib/slice/slice_internal.h"
 #include "src/core/lib/surface/call.h"
@@ -950,21 +951,56 @@ void Server::Start() {
   starting_cv_.Signal();
 }
 
-absl::Status Server::AddLogicalConnection(
-    OrphanablePtr<LogicalConnection> connection) {
+void Server::AddLogicalConnectionAndUpdateChannelArgs(
+    absl::AnyInvocable<
+        OrphanablePtr<LogicalConnection>(const ChannelArgs& args)>
+        connection_creator,
+    const ChannelArgs& args, grpc_endpoint* endpoint) {
   RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
       connection_manager;
   {
     MutexLock lock(&mu_global_);
     if (!is_serving_) {
-      return absl::UnavailableError("Not serving");
+      // Not serving
+      return;
     }
     connection_manager = connection_manager_;
   }
-  if (config_fetcher_ != nullptr && connection_manager == nullptr) {
-    return absl::UnavailableError("Connection manager not available");
+  ChannelArgs new_args;
+  if (config_fetcher_ != nullptr) {
+    if (connection_manager == nullptr) {
+      // Connection manager not available
+      return;
+    }
+    absl::StatusOr<ChannelArgs> args_result =
+        connection_manager->UpdateChannelArgsForConnection(args, endpoint);
+    if (!args_result.ok()) {
+      return;
+    }
+    auto* server_credentials =
+        (*args_result).GetObject<grpc_server_credentials>();
+    if (server_credentials == nullptr) {
+      // Could not find server credentials
+      return;
+    }
+    auto security_connector =
+        server_credentials->create_security_connector(args);
+    if (security_connector == nullptr) {
+      // Unable to create secure server with credentials
+      return;
+    }
+    new_args = args.SetObject(security_connector);
   }
-  return absl::OkStatus();
+  auto connection = connection_creator(new_args);
+  if (connection == nullptr) {
+    return;
+  }
+  MutexLock lock(&mu_global_);
+  if (!is_serving_ && connection_manager == connection_manager_) {
+    // Not serving
+    return;
+  }
+  logical_connections_.emplace(std::move(connection));
 }
 
 grpc_error_handle Server::SetupTransport(
@@ -1869,9 +1905,8 @@ grpc_call_error grpc_server_request_call(
   grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
   grpc_core::ExecCtx exec_ctx;
   GRPC_TRACE_LOG(api, INFO)
-      << "grpc_server_request_call("
-      << "server=" << server << ", call=" << call << ", details=" << details
-      << ", initial_metadata=" << request_metadata
+      << "grpc_server_request_call(" << "server=" << server << ", call=" << call
+      << ", details=" << details << ", initial_metadata=" << request_metadata
       << ", cq_bound_to_call=" << cq_bound_to_call
       << ", cq_for_notification=" << cq_for_notification << ", tag=" << tag;
   return grpc_core::Server::FromC(server)->RequestCall(
@@ -1890,10 +1925,9 @@ grpc_call_error grpc_server_request_registered_call(
   auto* rm =
       static_cast<grpc_core::Server::RegisteredMethod*>(registered_method);
   GRPC_TRACE_LOG(api, INFO)
-      << "grpc_server_request_registered_call("
-      << "server=" << server << ", registered_method=" << registered_method
-      << ", call=" << call << ", deadline=" << deadline
-      << ", request_metadata=" << request_metadata
+      << "grpc_server_request_registered_call(" << "server=" << server
+      << ", registered_method=" << registered_method << ", call=" << call
+      << ", deadline=" << deadline << ", request_metadata=" << request_metadata
       << ", optional_payload=" << optional_payload
       << ", cq_bound_to_call=" << cq_bound_to_call
       << ", cq_for_notification=" << cq_for_notification << ", tag=" << tag_new
