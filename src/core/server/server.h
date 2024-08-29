@@ -258,7 +258,9 @@ class Server : public ServerInterface,
     Server* const server_;
     ListenerInterface::ConfigFetcherWatcher* config_fetcher_watcher_ = nullptr;
     grpc_resolved_address resolved_address_;
-    Mutex mu_;
+    Mutex mu_;  // We could share this mutex with Listener implementations. It's
+                // a tradeoff between increased memory requirement and more
+                // granular critical regions.
     RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
         connection_manager_ ABSL_GUARDED_BY(mu_);
     bool is_serving_ ABSL_GUARDED_BY(mu_) = false;

@@ -207,8 +207,6 @@ class Chttp2ServerListener : public Server::ListenerInterface {
     RefCountedPtr<grpc_chttp2_transport> transport_ ABSL_GUARDED_BY(&mu_) =
         nullptr;
     grpc_closure on_close_;
-    absl::optional<EventEngine::TaskHandle> drain_grace_timer_handle_
-        ABSL_GUARDED_BY(&mu_);
     bool shutdown_ ABSL_GUARDED_BY(&mu_) = false;
   };
 
@@ -234,7 +232,7 @@ class Chttp2ServerListener : public Server::ListenerInterface {
   grpc_tcp_server* tcp_server_ = nullptr;
   ChannelArgs args_;
   Mutex mu_;
-  bool added_port_ ABSL_GUARDED_BY(mu_) = false;
+  bool add_port_on_start_ ABSL_GUARDED_BY(mu_) = false;
   // Signals whether the application has triggered shutdown.
   bool shutdown_ ABSL_GUARDED_BY(mu_) = false;
   grpc_closure tcp_server_shutdown_complete_ ABSL_GUARDED_BY(mu_);
@@ -551,15 +549,15 @@ grpc_error_handle Chttp2ServerListener::Create(Server* server,
       OnAccept, listener.get(), &listener->tcp_server_);
   if (!error.ok()) return error;
   if (listener->server_->config_fetcher() != nullptr) {
-    listener->set_resolved_address(*addr);
     // TODO(yashykt): Consider binding so as to be able to return the port
     // number.
-  } else {
-    error = grpc_tcp_server_add_port(listener->tcp_server_, addr, port_num);
+    listener->set_resolved_address(*addr);
     {
       MutexLock lock(&listener->mu_);
-      listener->added_port_ = true;
+      listener->add_port_on_start_ = true;
     }
+  } else {
+    error = grpc_tcp_server_add_port(listener->tcp_server_, addr, port_num);
     if (!error.ok()) return error;
   }
   // Create channelz node.
@@ -639,9 +637,9 @@ void Chttp2ServerListener::StartListeningImpl() {
   bool should_add_port = false;
   {
     MutexLock lock(&mu_);
-    if (!added_port_) {
+    if (add_port_on_start_) {
       should_add_port = true;
-      added_port_ = true;
+      add_port_on_start_ = false;
     }
     // Hold a ref while we start the server
     if (tcp_server_ != nullptr) {
