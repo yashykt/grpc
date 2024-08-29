@@ -700,7 +700,9 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
           if (self->shutdown_) {
             return nullptr;
           }
-          grpc_tcp_server_ref(self->tcp_server_);
+          if (self->tcp_server_ != nullptr) {
+            grpc_tcp_server_ref(self->tcp_server_);
+          }
           listener_ref = self->RefAsSubclass<Chttp2ServerListener>();
         }
         auto memory_owner = self->memory_quota_->CreateMemoryOwner();
