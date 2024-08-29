@@ -1007,7 +1007,7 @@ void Server::ListenerInterface::ConfigFetcherWatcher::StopServing() {
     listener_->is_serving_ = false;
     connections = std::move(listener_->connections_);
   }
-  // Send GOAWAYs on the transports so that they disconnected when existing
+  // Send GOAWAYs on the transports so that they disconnect when existing
   // RPCs finish.
   for (auto& connection : connections) {
     connection->SendGoAway();
@@ -1078,7 +1078,7 @@ void Server::ListenerInterface::AddLogicalConnectionAndUpdateChannelArgs(
     }
     connection_manager = connection_manager_;
   }
-  ChannelArgs new_args;
+  ChannelArgs new_args = args;
   if (server_->config_fetcher() != nullptr) {
     if (connection_manager == nullptr) {
       // Connection manager not available
@@ -1119,7 +1119,7 @@ void Server::ListenerInterface::RemoveLogicalConnection(
     LogicalConnection* connection) {
   OrphanablePtr<LogicalConnection> connection_to_remove;
   {
-    MutexLock listener_lock(&mu_);
+    MutexLock lock(&mu_);
     auto connection_handle = connections_.extract(connection);
     if (connection_handle.empty()) {
       return;

@@ -195,8 +195,10 @@ class Chttp2ServerListener : public Server::ListenerInterface {
     static void OnClose(void* arg, grpc_error_handle error);
     void OnDrainGraceTimeExpiry() ABSL_LOCKS_EXCLUDED(&mu_);
 
-    RefCountedPtr<Chttp2ServerListener> listener_;
-    Mutex mu_ ABSL_ACQUIRED_AFTER(&listener_->mu_);
+    Chttp2ServerListener* listener_as_subclass() const {
+      return DownCast<Chttp2ServerListener*>(listener().get());
+    }
+    Mutex mu_ /*ABSL_ACQUIRED_AFTER(&ListenerInterface::mu_)*/;
     // Set by HandshakingState before the handshaking begins and reset when
     // handshaking is done.
     OrphanablePtr<HandshakingState> handshaking_state_ ABSL_GUARDED_BY(&mu_);
@@ -357,7 +359,7 @@ void Chttp2ServerListener::ActiveConnection::HandshakingState::OnHandshakeDone(
                                          std::move((*result)->endpoint), false)
                 ->Ref();
         grpc_error_handle channel_init_err =
-            connection_->listener_->server_->SetupTransport(
+            connection_->listener()->server()->SetupTransport(
                 transport.get(), accepting_pollset_, (*result)->args,
                 grpc_chttp2_transport_get_socket_node(transport.get()));
         if (channel_init_err.ok()) {
@@ -372,15 +374,16 @@ void Chttp2ServerListener::ActiveConnection::HandshakingState::OnHandshakeDone(
           // need to watch on the transport being closed so that we can an
           // updated list of active connections.
           grpc_closure* on_close = nullptr;
-          if (connection_->listener_->server_->config_fetcher() != nullptr) {
+          if (connection_->listener()->server()->config_fetcher() != nullptr) {
             // Refs helds by OnClose()
             connection_->Ref().release();
             on_close = &connection_->on_close_;
           } else {
             // Remove the connection from the connections_ map since OnClose()
             // will not be invoked when a config fetcher is not set.
-            auto connection_quota =
-                connection_->listener_->connection_quota_->Ref().release();
+            auto connection_quota = connection_->listener_as_subclass()
+                                        ->connection_quota_->Ref()
+                                        .release();
             auto on_close_transport = [](void* arg,
                                          grpc_error_handle /*handle*/) {
               ConnectionQuota* connection_quota =
@@ -426,9 +429,11 @@ void Chttp2ServerListener::ActiveConnection::HandshakingState::OnHandshakeDone(
   OrphanablePtr<ActiveConnection> connection;
   if (cleanup_connection) {
     if (release_connection) {
-      connection_->listener_->connection_quota_->ReleaseConnections(1);
+      connection_->listener_as_subclass()
+          ->connection_quota_->ReleaseConnections(1);
     }
-    connection_->listener_->RemoveLogicalConnection(connection_.get());
+    connection_->listener_as_subclass()->RemoveLogicalConnection(
+        connection_.get());
   }
 }
 
@@ -450,8 +455,9 @@ Chttp2ServerListener::ActiveConnection::ActiveConnection(
 }
 
 Chttp2ServerListener::ActiveConnection::~ActiveConnection() {
-  if (listener_ != nullptr && listener_->tcp_server_ != nullptr) {
-    grpc_tcp_server_unref(listener_->tcp_server_);
+  if (listener_as_subclass() != nullptr &&
+      listener_as_subclass()->tcp_server_ != nullptr) {
+    grpc_tcp_server_unref(listener_as_subclass()->tcp_server_);
   }
 }
 
@@ -505,8 +511,8 @@ void Chttp2ServerListener::ActiveConnection::Start(
 void Chttp2ServerListener::ActiveConnection::OnClose(
     void* arg, grpc_error_handle /* error */) {
   ActiveConnection* self = static_cast<ActiveConnection*>(arg);
-  self->listener_->RemoveLogicalConnection(self);
-  self->listener_->connection_quota_->ReleaseConnections(1);
+  self->listener_as_subclass()->RemoveLogicalConnection(self);
+  self->listener_as_subclass()->connection_quota_->ReleaseConnections(1);
   self->Unref();
 }
 
@@ -674,7 +680,6 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
                                     grpc_pollset* accepting_pollset,
                                     grpc_tcp_server_acceptor* server_acceptor) {
   Chttp2ServerListener* self = static_cast<Chttp2ServerListener*>(arg);
-  ChannelArgs args = self->args_;
   OrphanablePtr<grpc_endpoint> endpoint(tcp);
   AcceptorPtr acceptor(server_acceptor);
   if (!self->connection_quota_->AllowIncomingConnection(
@@ -683,6 +688,7 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
   }
   RefCountedPtr<ActiveConnection> connection_ref;
   RefCountedPtr<Chttp2ServerListener> listener_ref;
+  ChannelArgs new_args;
   self->AddLogicalConnectionAndUpdateChannelArgs(
       [&](const ChannelArgs& args) -> OrphanablePtr<LogicalConnection> {
         {
@@ -696,9 +702,7 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
           if (self->shutdown_) {
             return nullptr;
           }
-          if (!self->shutdown_) {
-            grpc_tcp_server_ref(self->tcp_server_);
-          }
+          grpc_tcp_server_ref(self->tcp_server_);
           listener_ref = self->RefAsSubclass<Chttp2ServerListener>();
         }
         auto memory_owner = self->memory_quota_->CreateMemoryOwner();
@@ -706,11 +710,17 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
             std::move(listener_ref), accepting_pollset, std::move(acceptor),
             args, std::move(memory_owner));
         connection_ref = connection->RefAsSubclass<ActiveConnection>();
+        new_args = args;
         return connection;
       },
       self->args_, tcp);
   if (connection_ref != nullptr) {
-    connection_ref->Start(std::move(endpoint), args);
+    CHECK(
+        self->args_.GetObject<grpc_event_engine::experimental::EventEngine>() !=
+        nullptr);
+    CHECK(new_args.GetObject<grpc_event_engine::experimental::EventEngine>() !=
+          nullptr);
+    connection_ref->Start(std::move(endpoint), new_args);
   }
 }
 

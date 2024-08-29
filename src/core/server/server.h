@@ -194,6 +194,10 @@ class Server : public ServerInterface,
         return event_engine_;
       }
 
+      const RefCountedPtr<ListenerInterface>& listener() const {
+        return listener_;
+      }
+
      private:
       // These two methods are called in the context of a server config event.
       // Returns true if the operation was successful, false, if it was not
@@ -225,6 +229,8 @@ class Server : public ServerInterface,
     /// Sets a closure to be invoked by the listener when its destruction
     /// is complete.
     virtual void SetOnDestroyDone(grpc_closure* on_destroy_done) = 0;
+
+    Server* server() const { return server_; }
 
    protected:
     // Adds a LogicalConnection to the listener and updates the channel args if
