@@ -2068,8 +2068,9 @@ grpc_call_error grpc_server_request_call(
   grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
   grpc_core::ExecCtx exec_ctx;
   GRPC_TRACE_LOG(api, INFO)
-      << "grpc_server_request_call(" << "server=" << server << ", call=" << call
-      << ", details=" << details << ", initial_metadata=" << request_metadata
+      << "grpc_server_request_call("
+      << "server=" << server << ", call=" << call << ", details=" << details
+      << ", initial_metadata=" << request_metadata
       << ", cq_bound_to_call=" << cq_bound_to_call
       << ", cq_for_notification=" << cq_for_notification << ", tag=" << tag;
   return grpc_core::Server::FromC(server)->RequestCall(
@@ -2088,9 +2089,10 @@ grpc_call_error grpc_server_request_registered_call(
   auto* rm =
       static_cast<grpc_core::Server::RegisteredMethod*>(registered_method);
   GRPC_TRACE_LOG(api, INFO)
-      << "grpc_server_request_registered_call(" << "server=" << server
-      << ", registered_method=" << registered_method << ", call=" << call
-      << ", deadline=" << deadline << ", request_metadata=" << request_metadata
+      << "grpc_server_request_registered_call("
+      << "server=" << server << ", registered_method=" << registered_method
+      << ", call=" << call << ", deadline=" << deadline
+      << ", request_metadata=" << request_metadata
       << ", optional_payload=" << optional_payload
       << ", cq_bound_to_call=" << cq_bound_to_call
       << ", cq_for_notification=" << cq_for_notification << ", tag=" << tag_new
