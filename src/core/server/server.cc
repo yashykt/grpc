@@ -88,8 +88,6 @@
 
 namespace grpc_core {
 
-using grpc_event_engine::experimental::EventEngine;
-
 //
 // Server::RequestMatcherInterface
 //
@@ -1164,7 +1162,7 @@ void Server::ListenerInterface::Orphan() {
     connections = std::move(connections_);
     is_serving_ = false;
   }
-  // Note that OrphanImpl will unref the listener and hence should be done last.
+  // OrphanImpl will unref the listener and hence should be done last.
   OrphanImpl();
 }
 
