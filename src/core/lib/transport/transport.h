@@ -619,21 +619,6 @@ class ServerTransport : public Transport {
   ~ServerTransport() override = default;
 };
 
-class LogicalConnection : public InternallyRefCounted<LogicalConnection> {
- public:
-  LogicalConnection() = default;
-  LogicalConnection(const LogicalConnection&) = delete;
-  LogicalConnection& operator=(const LogicalConnection&) = delete;
-  LogicalConnection(LogicalConnection&&) = delete;
-  LogicalConnection& operator=(LogicalConnection&&) = delete;
-  ~LogicalConnection() override = default;
-
-  template <typename T>
-  RefCountedPtr<T> RefAsSubclass() {
-    return InternallyRefCounted<LogicalConnection>::RefAsSubclass<T>();
-  }
-};
-
 }  // namespace grpc_core
 
 namespace grpc_core {

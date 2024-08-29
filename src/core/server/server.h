@@ -62,6 +62,7 @@
 #include "src/core/lib/iomgr/endpoint.h"
 #include "src/core/lib/iomgr/error.h"
 #include "src/core/lib/iomgr/iomgr_fwd.h"
+#include "src/core/lib/iomgr/resolved_address.h"
 #include "src/core/lib/promise/arena_promise.h"
 #include "src/core/lib/slice/slice.h"
 #include "src/core/lib/surface/channel.h"
@@ -145,16 +146,77 @@ class Server : public ServerInterface,
   };
 
   /// Interface for listeners.
-  /// Implementations must override the Orphan() method, which should stop
+  /// Implementations must override the OrphanImpl() method, which should stop
   /// listening and initiate destruction of the listener.
   class ListenerInterface : public InternallyRefCounted<ListenerInterface> {
    public:
+    class ConfigFetcherWatcher
+        : public grpc_server_config_fetcher::WatcherInterface {
+     public:
+      explicit ConfigFetcherWatcher(RefCountedPtr<ListenerInterface> listener)
+          : listener_(std::move(listener)) {}
+
+      void UpdateConnectionManager(
+          RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
+              connection_manager) override;
+
+      void StopServing() override;
+
+     private:
+      RefCountedPtr<ListenerInterface> listener_;
+    };
+
+    class LogicalConnection : public InternallyRefCounted<LogicalConnection> {
+     public:
+      explicit LogicalConnection(RefCountedPtr<ListenerInterface> listener)
+          : listener_(std::move(listener)),
+            event_engine_(
+                listener_->server_->channel_args()
+                    .GetObject<
+                        grpc_event_engine::experimental::EventEngine>()) {}
+      LogicalConnection(const LogicalConnection&) = delete;
+      LogicalConnection& operator=(const LogicalConnection&) = delete;
+      LogicalConnection(LogicalConnection&&) = delete;
+      LogicalConnection& operator=(LogicalConnection&&) = delete;
+      ~LogicalConnection() override = default;
+
+      template <typename T>
+      RefCountedPtr<T> RefAsSubclass() {
+        return InternallyRefCounted<LogicalConnection>::RefAsSubclass<T>();
+      }
+
+      void SendGoAway();
+
+      void Orphan() override;
+
+     protected:
+      grpc_event_engine::experimental::EventEngine* event_engine() const {
+        return event_engine_;
+      }
+
+     private:
+      // These two methods are called in the context of a server config event.
+      // Returns true if the operation was successful, false, if it was not
+      // performed for example if the connection was already shutdown.
+      virtual bool SendGoAwayImpl() = 0;
+      virtual void DisconnectImmediatelyImpl() = 0;
+      virtual void OrphanImpl() = 0;
+
+      RefCountedPtr<ListenerInterface> listener_;
+      grpc_event_engine::experimental::EventEngine* const event_engine_;
+      mutable Mutex mu_;
+      absl::optional<grpc_event_engine::experimental::EventEngine::TaskHandle>
+          drain_grace_timer_handle_ ABSL_GUARDED_BY(&mu_);
+    };
+
+    explicit ListenerInterface(grpc_core::Server* server) : server_(server) {}
+
     ~ListenerInterface() override = default;
 
-    /// Starts listening. This listener may refer to the pollset object beyond
-    /// this call, so it is a pointer rather than a reference.
-    virtual void Start(Server* server,
-                       const std::vector<grpc_pollset*>* pollsets) = 0;
+    void Orphan() override;
+
+    /// Starts listening.
+    void Start();
 
     /// Returns the channelz node for the listen socket, or null if not
     /// supported.
@@ -163,6 +225,40 @@ class Server : public ServerInterface,
     /// Sets a closure to be invoked by the listener when its destruction
     /// is complete.
     virtual void SetOnDestroyDone(grpc_closure* on_destroy_done) = 0;
+
+   protected:
+    // Adds a LogicalConnection to the listener and updates the channel args if
+    // needed.
+    void AddLogicalConnectionAndUpdateChannelArgs(
+        absl::AnyInvocable<
+            OrphanablePtr<LogicalConnection>(const ChannelArgs& args)>,
+        const ChannelArgs& args, grpc_endpoint* endpoint)
+        ABSL_LOCKS_EXCLUDED(mu_);
+
+    void RemoveLogicalConnection(LogicalConnection* connection);
+
+    void set_resolved_address(grpc_resolved_address resolved_address) {
+      resolved_address_ = resolved_address;
+    }
+
+    const grpc_resolved_address* resolved_address() const {
+      return &resolved_address_;
+    }
+
+   private:
+    virtual void StartListeningImpl() = 0;
+    virtual void OrphanImpl() = 0;
+
+    Server* const server_;
+    ListenerInterface::ConfigFetcherWatcher* config_fetcher_watcher_ = nullptr;
+    grpc_resolved_address resolved_address_;
+    Mutex mu_;
+    RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
+        connection_manager_ ABSL_GUARDED_BY(mu_);
+    bool is_serving_ ABSL_GUARDED_BY(mu_) = false;
+    bool started_ ABSL_GUARDED_BY(mu_) = false;
+    absl::flat_hash_set<OrphanablePtr<ListenerInterface::LogicalConnection>>
+        connections_ ABSL_GUARDED_BY(mu_);
   };
 
   explicit Server(const ChannelArgs& args);
@@ -203,13 +299,6 @@ class Server : public ServerInterface,
   // Starts listening for connections.
   void Start() ABSL_LOCKS_EXCLUDED(mu_global_);
 
-  // Adds a LogicalConnection to the server and updates the channel args if
-  // needed.
-  void AddLogicalConnectionAndUpdateChannelArgs(
-      absl::AnyInvocable<
-          OrphanablePtr<LogicalConnection>(const ChannelArgs& args)>,
-      const ChannelArgs& args, grpc_endpoint* endpoint)
-      ABSL_LOCKS_EXCLUDED(mu_global_);
   // Sets up a transport.  Creates a channel stack and binds the transport to
   // the server.  Called from the listener when a new connection is accepted.
   // Takes ownership of a ref on resource_user from the caller.
@@ -558,8 +647,6 @@ class Server : public ServerInterface,
 
   std::list<ChannelData*> channels_;
   absl::flat_hash_set<OrphanablePtr<ServerTransport>> connections_
-      ABSL_GUARDED_BY(mu_global_);
-  absl::flat_hash_set<OrphanablePtr<LogicalConnection>> logical_connections_
       ABSL_GUARDED_BY(mu_global_);
   bool is_serving_ ABSL_GUARDED_BY(mu_global_);
   RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
