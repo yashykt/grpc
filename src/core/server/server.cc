@@ -1020,18 +1020,14 @@ void Server::ListenerInterface::ConfigFetcherWatcher::StopServing() {
 
 void Server::ListenerInterface::LogicalConnection::SendGoAway() {
   {
-    LOG(ERROR) << "Send goaway " << this;
     if (!SendGoAwayImpl()) {
-      LOG(ERROR) << "not firing " << this;
       return;
     }
     MutexLock lock(&mu_);
     if (drain_grace_timer_handle_cancelled_) {
-      LOG(ERROR) << "not firing " << this;
       return;
     }
     CHECK(drain_grace_timer_handle_ == EventEngine::TaskHandle::kInvalid);
-    LOG(ERROR) << "scheduling drain grace timer " << this;
     drain_grace_timer_handle_ = event_engine_->RunAfter(
         std::max(Duration::Zero(),
                  listener_->server_->channel_args()
@@ -1039,7 +1035,6 @@ void Server::ListenerInterface::LogicalConnection::SendGoAway() {
                          GRPC_ARG_SERVER_CONFIG_CHANGE_DRAIN_GRACE_TIME_MS)
                      .value_or(Duration::Minutes(10))),
         [self = Ref(DEBUG_LOCATION, "drain_grace_timer")]() mutable {
-          LOG(ERROR) << "drain grace timer fired " << self.get();
           ApplicationCallbackExecCtx callback_exec_ctx;
           ExecCtx exec_ctx;
           // If the drain_grace_timer_ was not cancelled, disconnect
@@ -1062,7 +1057,6 @@ void Server::ListenerInterface::LogicalConnection::SendGoAway() {
 
 void Server::ListenerInterface::LogicalConnection::CancelDrainGraceTimer() {
   MutexLock lock(&mu_);
-  LOG(ERROR) << "drain grace timer cancelled " << this;
   drain_grace_timer_handle_cancelled_ = true;
   if (drain_grace_timer_handle_ != EventEngine::TaskHandle::kInvalid) {
     event_engine_->Cancel(drain_grace_timer_handle_);
@@ -1121,7 +1115,6 @@ void Server::ListenerInterface::AddLogicalConnectionAndUpdateChannelArgs(
     // Not serving
     return;
   }
-  LOG(ERROR) << "adding connection " << connection.get();
   connections_.emplace(std::move(connection));
 }
 
@@ -1131,10 +1124,8 @@ void Server::ListenerInterface::RemoveLogicalConnection(
   {
     // Remove the connection if it wasn't already removed.
     MutexLock lock(&mu_);
-    LOG(ERROR) << connections_.size();
     auto connection_handle = connections_.extract(connection);
     if (!connection_handle.empty()) {
-      LOG(ERROR) << "removing connection " << this;
       connection_to_remove = std::move(connection_handle.value());
     }
   }
