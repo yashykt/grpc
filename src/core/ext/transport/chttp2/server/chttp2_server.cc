@@ -424,7 +424,6 @@ void Chttp2ServerListener::ActiveConnection::HandshakingState::OnHandshakeDone(
     handshake_mgr = std::move(handshake_mgr_);
     handshaking_state_ref = std::move(connection_->handshaking_state_);
   }
-  OrphanablePtr<ActiveConnection> connection;
   if (cleanup_connection) {
     if (release_connection) {
       connection_->listener_as_subclass()

@@ -219,7 +219,7 @@ class Server : public ServerInterface,
               experimental::EventEngine::TaskHandle::kInvalid;
       // The drain grace timer should only be started if it wasn't previously
       // cancelled.
-      bool drain_grace_timer_handle_cancelled_ ABSL_GUARDED_BY(&mu_);
+      bool drain_grace_timer_handle_cancelled_ ABSL_GUARDED_BY(&mu_) = false;
     };
 
     explicit ListenerInterface(grpc_core::Server* server) : server_(server) {}

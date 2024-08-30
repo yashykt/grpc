@@ -1020,6 +1020,7 @@ void Server::ListenerInterface::ConfigFetcherWatcher::StopServing() {
 
 void Server::ListenerInterface::LogicalConnection::SendGoAway() {
   {
+    LOG(ERROR) << "Send goaway " << this;
     if (!SendGoAwayImpl()) {
       LOG(ERROR) << "not firing " << this;
       return;
@@ -1120,6 +1121,7 @@ void Server::ListenerInterface::AddLogicalConnectionAndUpdateChannelArgs(
     // Not serving
     return;
   }
+  LOG(ERROR) << "adding connection " << connection.get();
   connections_.emplace(std::move(connection));
 }
 
@@ -1129,8 +1131,10 @@ void Server::ListenerInterface::RemoveLogicalConnection(
   {
     // Remove the connection if it wasn't already removed.
     MutexLock lock(&mu_);
+    LOG(ERROR) << connections_.size();
     auto connection_handle = connections_.extract(connection);
     if (!connection_handle.empty()) {
+      LOG(ERROR) << "removing connection " << this;
       connection_to_remove = std::move(connection_handle.value());
     }
   }
