@@ -1582,6 +1582,7 @@ TEST_P(XdsEnabledServerStatusNotificationTest,
           server_authenticated_identity_, {});
   // After the drain grace time expires, the existing RPCs should all fail.
   for (int i = 0; i < kNumChannels; i++) {
+    LOG(ERROR) << " Here";
     // Wait for the drain grace time to expire
     EXPECT_FALSE(streaming_rpcs[i].stream->Read(&response));
     // Make sure that the drain grace interval is honored.
@@ -1593,6 +1594,7 @@ TEST_P(XdsEnabledServerStatusNotificationTest,
         << status.error_details() << ", "
         << streaming_rpcs[i].context.debug_error_string();
   }
+  LOG(ERROR) << " Here;";
 }
 
 class XdsServerFilterChainMatchTest : public XdsServerSecurityTest {

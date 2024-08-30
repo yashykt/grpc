@@ -178,7 +178,9 @@ class Server : public ServerInterface,
       LogicalConnection& operator=(const LogicalConnection&) = delete;
       LogicalConnection(LogicalConnection&&) = delete;
       LogicalConnection& operator=(LogicalConnection&&) = delete;
-      ~LogicalConnection() override = default;
+      ~LogicalConnection() override {
+        LOG(ERROR) << "~LogicalConnection delete " << this;
+      }
 
       template <typename T>
       RefCountedPtr<T> RefAsSubclass() {
@@ -186,6 +188,9 @@ class Server : public ServerInterface,
       }
 
       void SendGoAway();
+
+      // Cancel drain grace timer. It won't be started in the future either.
+      void CancelDrainGraceTimer();
 
       void Orphan() override;
 
@@ -209,8 +214,12 @@ class Server : public ServerInterface,
       RefCountedPtr<ListenerInterface> listener_;
       grpc_event_engine::experimental::EventEngine* const event_engine_;
       mutable Mutex mu_;
-      absl::optional<grpc_event_engine::experimental::EventEngine::TaskHandle>
-          drain_grace_timer_handle_ ABSL_GUARDED_BY(&mu_);
+      grpc_event_engine::experimental::EventEngine::TaskHandle
+          drain_grace_timer_handle_ ABSL_GUARDED_BY(&mu_) = grpc_event_engine::
+              experimental::EventEngine::TaskHandle::kInvalid;
+      // The drain grace timer should only be started if it wasn't previously
+      // cancelled.
+      bool drain_grace_timer_handle_cancelled_ ABSL_GUARDED_BY(&mu_);
     };
 
     explicit ListenerInterface(grpc_core::Server* server) : server_(server) {}
@@ -241,6 +250,10 @@ class Server : public ServerInterface,
         const ChannelArgs& args, grpc_endpoint* endpoint)
         ABSL_LOCKS_EXCLUDED(mu_);
 
+    // Removes the logical connection from being tracked either because it does
+    // not need to be tracked. This could happen for reasons such as the
+    // connection being closed, or the connection has been established
+    // (including handshake) and doesn't have a server config fetcher.
     void RemoveLogicalConnection(LogicalConnection* connection);
 
     void set_resolved_address(grpc_resolved_address resolved_address) {

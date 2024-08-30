@@ -369,8 +369,8 @@ void Chttp2ServerListener::ActiveConnection::HandshakingState::OnHandshakeDone(
           GRPC_CLOSURE_INIT(&on_receive_settings_, OnReceiveSettings, this,
                             grpc_schedule_on_exec_ctx);
           // If the listener has been configured with a config fetcher, we
-          // need to watch on the transport being closed so that we can an
-          // updated list of active connections.
+          // need to watch on the transport being closed so that we can update
+          // the list of active connections.
           grpc_closure* on_close = nullptr;
           if (connection_->listener()->server()->config_fetcher() != nullptr) {
             // Refs helds by OnClose()
@@ -509,6 +509,10 @@ void Chttp2ServerListener::ActiveConnection::Start(
 void Chttp2ServerListener::ActiveConnection::OnClose(
     void* arg, grpc_error_handle /* error */) {
   ActiveConnection* self = static_cast<ActiveConnection*>(arg);
+  {
+    MutexLock lock(&self->mu_);
+    self->shutdown_ = true;
+  }
   self->listener_as_subclass()->RemoveLogicalConnection(self);
   self->listener_as_subclass()->connection_quota_->ReleaseConnections(1);
   self->Unref();
@@ -715,11 +719,6 @@ void Chttp2ServerListener::OnAccept(void* arg, grpc_endpoint* tcp,
       },
       self->args_, tcp);
   if (connection_ref != nullptr) {
-    CHECK(
-        self->args_.GetObject<grpc_event_engine::experimental::EventEngine>() !=
-        nullptr);
-    CHECK(new_args.GetObject<grpc_event_engine::experimental::EventEngine>() !=
-          nullptr);
     connection_ref->Start(std::move(endpoint), new_args);
   }
 }
