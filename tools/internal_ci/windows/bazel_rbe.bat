@@ -35,4 +35,4 @@ bazel --version
 
 python3 tools/run_tests/python_utils/bazel_report_helper.py --report_path bazel_rbe
 
-call bazel_rbe/bazel_wrapper.bat --bazelrc=tools/remote_build/windows.bazelrc --output_user_root=T:\_bazel_output test %BAZEL_FLAGS% --runs_per_test=1000 --test_env=GRPC_TRACE=polling,polling_api,call,channel,channel_stack,chttp2_hpack_parser,client_channel,client_channel_call,event_engine,event_engine_poller,event_engine_endpoint,event_engine_endpoint_data,http,retry,tcp -- //test/core/transport/chttp2:too_many_pings_test || exit /b 1
+call bazel_rbe/bazel_wrapper.bat --bazelrc=tools/remote_build/windows.bazelrc --output_user_root=T:\_bazel_output test %BAZEL_FLAGS% --runs_per_test=1000 --test_env=GRPC_TRACE=all,-timer,-timer_check -- //test/core/transport/chttp2:too_many_pings_test || exit /b 1
