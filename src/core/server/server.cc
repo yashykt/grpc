@@ -100,11 +100,11 @@ void Server::ListenerInterface::ConfigFetcherWatcher::UpdateConnectionManager(
   RefCountedPtr<grpc_server_config_fetcher::ConnectionManager>
       connection_manager_to_destroy;
   absl::flat_hash_set<OrphanablePtr<ListenerInterface::LogicalConnection>>
-        connections_to_shutdown;
+      connections_to_shutdown;
   auto cleanup = absl::MakeCleanup([&connections_to_shutdown]() {
-          // Send GOAWAYs on the transports so that they get disconnected when
-      // existing RPCs finish, and so that no new RPC is started on them.
-    for (auto& connection: connections_to_shutdown) {
+    // Send GOAWAYs on the transports so that they get disconnected when
+    // existing RPCs finish, and so that no new RPC is started on them.
+    for (auto& connection : connections_to_shutdown) {
       connection->SendGoAway();
     }
   });
