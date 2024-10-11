@@ -156,7 +156,7 @@ class Chttp2ServerListener : public Server::ListenerInterface {
 
   const grpc_resolved_address* resolved_address() const override {
     // Should only be invoked with experiment server_listener
-    grpc_core::Crash("Illegal");
+    Crash("Illegal");
     return nullptr;
   }
 
