@@ -60,7 +60,7 @@ class Chttp2ServerListenerTestPeer {
 
 class ServerTestPeer {
  public:
-  ServerTestPeer(Server* server) : server_(server) {}
+  explicit ServerTestPeer(Server* server) : server_(server) {}
 
   const std::list<RefCountedPtr<Server::ListenerState>>& listener_states()
       const {
@@ -74,23 +74,21 @@ class ServerTestPeer {
 class Chttp2ServerListenerTest : public ::testing::Test {
  protected:
   void SetUp() override {
-    args_ = grpc_core::CoreConfiguration::Get()
+    args_ = CoreConfiguration::Get()
                 .channel_args_preconditioning()
                 .PreconditionChannelArgs(nullptr);
     server_ = MakeOrphanable<Server>(args_);
     auto creds = MakeRefCounted<InsecureServerCredentials>();
     grpc_server_add_http2_port(
         server_->c_ptr(),
-        grpc_core::JoinHostPort("localhost", grpc_pick_unused_port_or_die())
-            .c_str(),
+        JoinHostPort("localhost", grpc_pick_unused_port_or_die()).c_str(),
         creds.get());
     cq_ = grpc_completion_queue_create_for_next(/*reserved=*/nullptr);
     server_->RegisterCompletionQueue(cq_);
     grpc_server_start(server_->c_ptr());
     listener_state_ =
         ServerTestPeer(server_.get()).listener_states().front().get();
-    listener_ = grpc_core::DownCast<NewChttp2ServerListener*>(
-        listener_state_->listener());
+    listener_ = DownCast<NewChttp2ServerListener*>(listener_state_->listener());
   }
 
   void TearDown() override {
