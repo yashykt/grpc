@@ -7953,7 +7953,10 @@ add_executable(cel_authorization_engine_test
   src/core/ext/upb-generated/envoy/type/v3/token_bucket.upb.c
   src/core/ext/upb-generated/google/api/annotations.upb.c
   src/core/ext/upb-generated/google/api/expr/v1alpha1/checked.upb.c
+  src/core/ext/upb-generated/google/api/expr/v1alpha1/eval.upb.c
+  src/core/ext/upb-generated/google/api/expr/v1alpha1/explain.upb.c
   src/core/ext/upb-generated/google/api/expr/v1alpha1/syntax.upb.c
+  src/core/ext/upb-generated/google/api/expr/v1alpha1/value.upb.c
   src/core/ext/upb-generated/google/api/http.upb.c
   src/core/ext/upb-generated/google/api/httpbody.upb.c
   src/core/ext/upb-generated/google/protobuf/any.upb.c
