@@ -289,7 +289,7 @@ GlobalStatsPluginRegistry::StatsPluginGroup GetStatsPluginGroupForKey(
     return GlobalStatsPluginRegistry::GetStatsPluginsForServer(ChannelArgs{});
   }
   // TODO(roth): How do we set the authority here?
-  experimental::StatsPluginChannelScope scope(key, "");
+  experimental::StatsPluginChannelScope scope(std::string(key), "");
   return GlobalStatsPluginRegistry::GetStatsPluginsForChannel(scope);
 }
 
