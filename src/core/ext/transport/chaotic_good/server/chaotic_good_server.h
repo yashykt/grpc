@@ -174,7 +174,7 @@ class ChaoticGoodServerListener final : public Server::ListenerInterface {
     bool shutdown_ ABSL_GUARDED_BY(mu_) = false;
   };
 
-  void Start(Server*, const std::vector<grpc_pollset*>*) override {
+  void Start(Server*, const std::vector<grpc_pollset*>*) {
     StartListening().IgnoreError();
   };
 
