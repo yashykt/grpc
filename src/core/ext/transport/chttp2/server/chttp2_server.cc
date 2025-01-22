@@ -386,7 +386,6 @@ Chttp2ServerListener::ActiveConnection::HandshakingState::HandshakingState(
       handshake_mgr_(MakeRefCounted<HandshakeManager>()),
       deadline_(GetConnectionDeadline(args)),
       interested_parties_(grpc_pollset_set_create()) {
-  LOG(ERROR) << "Handshaking state " << this;
   if (accepting_pollset != nullptr) {
     grpc_pollset_set_add_pollset(interested_parties_, accepting_pollset_);
   }
@@ -395,7 +394,6 @@ Chttp2ServerListener::ActiveConnection::HandshakingState::HandshakingState(
 }
 
 Chttp2ServerListener::ActiveConnection::HandshakingState::~HandshakingState() {
-  LOG(ERROR) << "~Handshaking state " << this;
   bool connection_started = false;
   {
     MutexLock lock(&connection_->mu_);
@@ -412,7 +410,6 @@ Chttp2ServerListener::ActiveConnection::HandshakingState::~HandshakingState() {
 }
 
 void Chttp2ServerListener::ActiveConnection::HandshakingState::Orphan() {
-  LOG(ERROR) << "Handshaking state orphan " << this;
   {
     MutexLock lock(&connection_->mu_);
     ShutdownLocked(absl::UnavailableError("Listener stopped serving."));
@@ -983,6 +980,7 @@ NewChttp2ServerListener::ActiveConnection::HandshakingState::HandshakingState(
       deadline_(GetConnectionDeadline(args)),
       endpoint_(std::move(endpoint)),
       handshake_mgr_(MakeRefCounted<HandshakeManager>()) {
+  LOG(ERROR) << "Handshaking state " << this;
   if (accepting_pollset != nullptr) {
     grpc_pollset_set_add_pollset(interested_parties_, accepting_pollset_);
   }
@@ -990,6 +988,7 @@ NewChttp2ServerListener::ActiveConnection::HandshakingState::HandshakingState(
 
 NewChttp2ServerListener::ActiveConnection::HandshakingState::
     ~HandshakingState() {
+  LOG(ERROR) << "~Handshaking state " << this;
   if (accepting_pollset_ != nullptr) {
     grpc_pollset_set_del_pollset(interested_parties_, accepting_pollset_);
   }
@@ -1002,6 +1001,7 @@ NewChttp2ServerListener::ActiveConnection::HandshakingState::
 void NewChttp2ServerListener::ActiveConnection::HandshakingState::Orphan() {
   connection_->work_serializer_.Run(
       [this] {
+        LOG(ERROR) << "Handshaking state orphan " << this;
         ShutdownLocked(absl::UnavailableError("Listener stopped serving."));
         Unref();
       },
@@ -1064,6 +1064,7 @@ void NewChttp2ServerListener::ActiveConnection::HandshakingState::
 
 void NewChttp2ServerListener::ActiveConnection::HandshakingState::
     OnHandshakeDoneLocked(absl::StatusOr<HandshakerArgs*> result) {
+  LOG(ERROR) << "handshake done " << this;
   OrphanablePtr<HandshakingState> handshaking_state_ref;
   RefCountedPtr<HandshakeManager> handshake_mgr;
   // If the handshaking succeeded but there is no endpoint, then the
