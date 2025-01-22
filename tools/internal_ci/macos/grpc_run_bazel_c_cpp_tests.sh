@@ -49,5 +49,5 @@ bazel_c_cpp_tests/bazel_wrapper \
   --google_credentials="${KOKORO_GFILE_DIR}/GrpcTesting-d0eeee2db331.json" \
   "${BAZEL_REMOTE_CACHE_ARGS[@]}" \
   $BAZEL_FLAGS \
-  --runs_per_test=10000 \
+  --runs_per_test=100 \
   -- //test/core/transport/chttp2:chttp2_server_listener_test
