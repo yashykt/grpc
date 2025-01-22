@@ -193,6 +193,7 @@ class Chttp2ServerListenerTest : public ::testing::Test {
   void TearDown() override {
     CqVerifier cqv(cq_);
     grpc_server_shutdown_and_notify(server_->c_ptr(), cq_, CqVerifier::tag(-1));
+    grpc_server_cancel_all_calls(server_->c_ptr());
     cqv.Expect(CqVerifier::tag(-1), true);
     cqv.Verify();
     server_.reset();

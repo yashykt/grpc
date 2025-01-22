@@ -102,6 +102,7 @@ class NewChttp2ServerListener : public Server::ListenerInterface {
                      grpc_pollset* accepting_pollset, AcceptorPtr acceptor,
                      const ChannelArgs& args, MemoryOwner memory_owner,
                      OrphanablePtr<grpc_endpoint> endpoint);
+    ~ActiveConnection() override;
     void Start(const ChannelArgs& args);
 
     void SendGoAway() override;

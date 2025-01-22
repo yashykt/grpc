@@ -386,6 +386,7 @@ Chttp2ServerListener::ActiveConnection::HandshakingState::HandshakingState(
       handshake_mgr_(MakeRefCounted<HandshakeManager>()),
       deadline_(GetConnectionDeadline(args)),
       interested_parties_(grpc_pollset_set_create()) {
+  LOG(ERROR) << "Handshaking state " << this;
   if (accepting_pollset != nullptr) {
     grpc_pollset_set_add_pollset(interested_parties_, accepting_pollset_);
   }
@@ -394,6 +395,7 @@ Chttp2ServerListener::ActiveConnection::HandshakingState::HandshakingState(
 }
 
 Chttp2ServerListener::ActiveConnection::HandshakingState::~HandshakingState() {
+  LOG(ERROR) << "~Handshaking state " << this;
   bool connection_started = false;
   {
     MutexLock lock(&connection_->mu_);
@@ -410,6 +412,7 @@ Chttp2ServerListener::ActiveConnection::HandshakingState::~HandshakingState() {
 }
 
 void Chttp2ServerListener::ActiveConnection::HandshakingState::Orphan() {
+  LOG(ERROR) << "Handshaking state orphan " << this;
   {
     MutexLock lock(&connection_->mu_);
     ShutdownLocked(absl::UnavailableError("Listener stopped serving."));
@@ -1134,13 +1137,19 @@ NewChttp2ServerListener::ActiveConnection::ActiveConnection(
       state_(memory_owner.MakeOrphanable<HandshakingState>(
           RefAsSubclass<ActiveConnection>(), tcp_server, accepting_pollset,
           std::move(acceptor), args, std::move(endpoint))) {
+  LOG(ERROR) << "ActiveConnection  " << this;
   GRPC_CLOSURE_INIT(&on_close_, ActiveConnection::OnClose, this,
                     grpc_schedule_on_exec_ctx);
+}
+
+NewChttp2ServerListener::ActiveConnection::~ActiveConnection() {
+  LOG(ERROR) << "~ActiveConnection  " << this;
 }
 
 void NewChttp2ServerListener::ActiveConnection::Orphan() {
   work_serializer_.Run(
       [this]() {
+        LOG(ERROR) << "Orphan  " << this;
         // If ActiveConnection is orphaned before handshake is established,
         // shutdown the handshaker. If the server is stopping to serve or
         // shutting down and a transport has already been established, GOAWAYs
@@ -1318,11 +1327,13 @@ NewChttp2ServerListener::NewChttp2ServerListener(
     const ChannelArgs& args,
     std::shared_ptr<experimental::PassiveListenerImpl> passive_listener)
     : args_(args), passive_listener_(std::move(passive_listener)) {
+  LOG(ERROR) << "NewChttp2ServerListener create " << this;
   GRPC_CLOSURE_INIT(&tcp_server_shutdown_complete_, TcpServerShutdownComplete,
                     this, grpc_schedule_on_exec_ctx);
 }
 
 NewChttp2ServerListener::~NewChttp2ServerListener() {
+  LOG(ERROR) << "NewChttp2ServerListener destroyed " << this;
   if (passive_listener_ != nullptr) {
     passive_listener_->ListenerDestroyed();
   }
@@ -1430,6 +1441,8 @@ void NewChttp2ServerListener::TcpServerShutdownComplete(
 // Server callback: destroy the tcp listener (so we don't generate further
 // callbacks)
 void NewChttp2ServerListener::Orphan() {
+  LOG(ERROR) << "NewChttp2ServerListener orphan " << this;
+
   grpc_tcp_server* tcp_server;
   {
     MutexLock lock(&mu_);

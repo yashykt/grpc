@@ -1389,11 +1389,11 @@ void Server::MaybeFinishShutdown() {
                                   last_shutdown_message_time_),
                      gpr_time_from_seconds(1, GPR_TIMESPAN)) >= 0) {
       last_shutdown_message_time_ = gpr_now(GPR_CLOCK_REALTIME);
-      VLOG(2) << "Waiting for " << channels_.size() << " channels "
-              << connections_open_ << " connections and "
-              << listener_states_.size() - listeners_destroyed_ << "/"
-              << listener_states_.size()
-              << " listeners to be destroyed before shutting down server";
+      LOG(ERROR) << "Waiting for " << channels_.size() << " channels "
+                 << connections_open_ << " connections and "
+                 << listener_states_.size() - listeners_destroyed_ << "/"
+                 << listener_states_.size()
+                 << " listeners to be destroyed before shutting down server";
     }
     return;
   }
