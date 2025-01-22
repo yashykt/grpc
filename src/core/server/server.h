@@ -188,7 +188,7 @@ class Server : public ServerInterface,
       virtual void SendGoAway() = 0;
       virtual void DisconnectImmediately() = 0;
     };
-
+    ListenerInterface() : InternallyRefCounted("Listener") {}
     ~ListenerInterface() override = default;
 
     /// Starts listening.
