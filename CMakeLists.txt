@@ -25024,6 +25024,7 @@ target_link_libraries(promise_map_test
   gtest
   absl::any_invocable
   absl::check
+  absl::log
   absl::type_traits
   absl::status
   absl::statusor
