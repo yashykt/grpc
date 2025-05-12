@@ -41,7 +41,7 @@ class ServerContext;
 // used for future RPCs. This must be called before any views are created.
 GRPC_DEPRECATED(
     "OpenCensus has been sunsetted in favor of OpenTelemetry "
-    "https://opentelemetry.io/blog/2023/sunsetting-opencensus/")
+    "https://opentelemetry.io/blog/2023/sunsetting-opencensus/");
 void RegisterOpenCensusPlugin();
 
 // RPC stats definitions, defined by
@@ -52,13 +52,13 @@ void RegisterOpenCensusPlugin();
 // the ViewDescriptors below.
 GRPC_DEPRECATED(
     "OpenCensus has been sunsetted in favor of OpenTelemetry "
-    "https://opentelemetry.io/blog/2023/sunsetting-opencensus/")
+    "https://opentelemetry.io/blog/2023/sunsetting-opencensus/");
 void RegisterOpenCensusViewsForExport();
 
 // DEPRECATED: Returns the tracing Span for the current RPC.
 GRPC_DEPRECATED(
     "OpenCensus has been sunsetted in favor of OpenTelemetry "
-    "https://opentelemetry.io/blog/2023/sunsetting-opencensus/")
+    "https://opentelemetry.io/blog/2023/sunsetting-opencensus/");
 ::opencensus::trace::Span GetSpanFromServerContext(ServerContext* context);
 
 namespace experimental {
